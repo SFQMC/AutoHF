@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
 
-from afqmctools.hamiltonian.model.director import HamiltonianDirector
+afqmctools = pytest.importorskip("afqmctools")
+
 from autohf.converters import AutoHFHamiltonian
 
 class TestSFQMCHamiltonians:
@@ -45,6 +46,7 @@ class TestSFQMCHamiltonians:
         hamiltonian = hamiltonian_director.build()
         lattice = hamiltonian_director.builder.lattice
 
+        # TODO: update to convert to AutoHFHamiltonian first, then pass along.
         hamil = AutoHFHamiltonian(hamiltonian,L=lattice.L)
 
         # check that all *values* are present

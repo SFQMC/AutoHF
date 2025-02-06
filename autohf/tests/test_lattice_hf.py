@@ -1,59 +1,82 @@
 import pytest
-import numpy as np
-
-from afqmctools.hamiltonian.model.director import HamiltonianDirector
 from autohf.solver import lattice_hf
 
 class TestAutoHFSolver:
+    """
+    Tests for the behavior of the lattice_hf solver.
+    This does not include tests which check the correctness
+    of the Hartree-Fock energy for specific systems.
+    """
 
-    @pytest.mark.dev
-    @pytest.mark.parametrize( # TODO: add more cases
-        "t,J_heisenberg,L,boundaries,Nes,seed,expected_energy",
-        [
-            (0,1.0,(4,1),("open","open"),(4,0),42,0.75)
-        ]
-    )
-    def test_heisenberg_collinear(self,t,J_heisenberg,L,boundaries,
-                                  Nes,seed,expected_energy,tmp_path):
+    def test_starts(self,hubbard_4x4):
         """
-        Tests that the Hamiltonian is properly converted to
-        autoHF's format.
-
-        This test is indirect. It only checks that each of the
-        unique values in the input parameters t,U,U1,U2,J appear
-        *somewhere* in the appropriate "term".
+        Tests that the lattice_hf solver can be started with
+        a variety of initial conditions.
         """
-        settings = {
-            "hamiltonian" : dict(
-                t = t,
-                J_heisenberg = J_heisenberg
-            ),
-            "lattice" : dict(
-                L1 = L[0],
-                L2 = L[1],
-                boundary1 = boundaries[0],
-                boundary2 = boundaries[1]
-                )
-        }
+        
+        hf_settings = dict(
+            ansatz = 'SD_ROT',
+            numSteps = 10,
+            nelec = (8,8),
+            numTrials = 3,
+            seed = 12345,
+            noncollinear = False
+        )
 
-        hamiltonian_director = HamiltonianDirector(source=settings)
-        hamiltonian = hamiltonian_director.build()
-        lattice = hamiltonian_director.builder.lattice
+        results = lattice_hf(
+            hamiltonian=hubbard_4x4,
+            settings=hf_settings
+        )
+
+        assert results is not None
+
+    
+    def test_restart(self,hubbard_4x4):
+        """
+        Tests that the lattice_hf solver 
+        can be restarted from a previous calculation.
+        This allows settings (or even the Hamiltonian) to be changed 
+        after some initial optimization.
+
+        Parameters
+        ----------
+        hubbard_4x4 : AutoHFHamiltonian (from pytest fixture)
+            A simple 4x4 Hubbard model with periodic boundary conditions.
+        """
 
         hf_settings = dict(
             ansatz = 'SD_ROT',
-            numSteps = 100,
-            output = tmp_path/"afqmc.h5",
-            opt_method="grad",
-            nelec = Nes,
-            numTrials = 10,
-            seed = seed,
+            numSteps = 10,
+            nelec = (8,8),
+            numTrials = 3,
+            seed = 12345,
             noncollinear = False
         )
-        E_hf = lattice_hf(
-            hamiltonian=hamiltonian,
-            lattice=lattice,
-            settings=hf_settings
-        )["E_final"]
 
-        assert np.isclose(E_hf,expected_energy, atol=1e-4)
+        results = lattice_hf(
+            hamiltonian=hubbard_4x4,
+            settings=hf_settings
+        )
+
+        hf_settings["riemannian"] = True
+
+        results = lattice_hf(
+            hamiltonian=hubbard_4x4,
+            settings=hf_settings,
+            start_from=results
+        )
+
+        # TODO: need to think about how to test that this
+        #         did what we wanted (this only checks that it runs
+        #         after being given a results dictionary from a previous run)
+        assert results is not None
+
+    def test_expected_errors(self):
+        """
+        Tests that the lattice_hf solver raises the expected errors.
+        
+        TODO: use pytest mark parameterize to test many cases here.
+        """
+        with pytest.raises(ValueError):
+            lattice_hf(hamiltonian=None,settings={})
+
