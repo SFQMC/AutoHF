@@ -6,8 +6,7 @@ from .rotation_tools import makeRot
 import jax.numpy as jnp
 
 from .terms.uhf import known_terms as uhf_known_terms
-from .terms.uhf import known_terms as ghf_known_terms
-
+from .terms.ghf import known_terms as ghf_known_terms
 
 # optionally import afqmctools
 if importlib.util.find_spec("afqmctools") is not None:
