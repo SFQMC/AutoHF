@@ -19,6 +19,7 @@ import jax
 #    autoHF_2_afqmc_wfn
 #)
 
+known_terms = ["T","U","U1","U2","J","Jheis"]
 
 '''
 Library of wick contractions for UHF wave functions

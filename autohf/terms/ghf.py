@@ -8,6 +8,8 @@ are split into up-up, up-dn, dn-up, dn-dn
 
 '''
 
+known_terms = ["T","U","U1","U2","J","Jheis"]
+
 # Hubbard U n_{i\uparrow} n_{j\downarrow}
 def ghf_U(rdms,sites):
   rdm_uu,rdm_dd,rdm_ud,rdm_du = rdms

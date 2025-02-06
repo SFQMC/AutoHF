@@ -5,6 +5,10 @@ from .options import RepOptions,SlaterType
 from .rotation_tools import makeRot
 import jax.numpy as jnp
 
+from .terms.uhf import known_terms as uhf_known_terms
+from .terms.uhf import known_terms as ghf_known_terms
+
+
 # optionally import afqmctools
 if importlib.util.find_spec("afqmctools") is not None:
     HAS_AFQMCTOOLS = True
@@ -27,7 +31,7 @@ class AutoHFHamiltonian:
         in internal format.
     """
 
-    def __init__(self,source,L) -> None:
+    def __init__(self,source=None,L=None) -> None:
 
         self._terms = {}
         self._one_body = None
@@ -36,6 +40,9 @@ class AutoHFHamiltonian:
             self._init_from_afqmctools(source,L)
         elif isinstance(source,AutoHFHamiltonian):
             raise NotImplementedError
+        elif source is None:
+            # in this case, we can still use .set() to add terms
+            pass
         else:
             raise ValueError(f"[For Developers] Can't initialize AutoHF Hamiltonian  \
                                 from source of type {type(source)}")
@@ -124,6 +131,9 @@ class AutoHFHamiltonian:
     
     def set(self,key,value):
         # TODO: filter based on allowed keys
+        if key not in uhf_known_terms and key not in ghf_known_terms:
+            raise ValueError(f"Unknown term {key}")
+
         self._terms[key] = value
 
     def get_one_body(self):
