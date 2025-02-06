@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "autohf"
+version = "0.0.1"
+requires-python = ">3.9"
+dependencies = [
+    "jax",
+    "optax",
+    "jaxlib",
+    "jaxopt",
+    "numpy",
+    "scipy >= 1.11.0",
+    "h5py > 2.6.0",
+    "matplotlib",
+    "pytest",
+    "toml",
+]
+
+# domain-specific dependencies are considered optional!
+[project.optional-dependencies]
+cuda11 = ["jax[cuda11]","optax","jaxlib", "jaxopt"]
+cuda12 = ["jax[cuda12]","optax","jaxlib", "jaxopt"]
+TESTING = ["pytest-html","coverage"]
+DOCS = [
+    "sphinx",
+    "sphinxcontrib-bibtex",
+    "sphinx-rtd-theme",
+    "myst_nb",
+    "sphinx-autodoc-typehints",
+    "numpydoc"
+]
+
+[tool.setuptools]
+packages = [
+    "autohf",
+    "autohf.terms",
+    "autohf.interfaces",
+]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "--verbose --html=./.htmlpytest/pytest.html --strict-markers"
+testpaths = [
+    "tests",
+    "autohf/tests"
+]
+markers = [
+    "dev: for tests used as used for test-driven development (TDD)",
+    "debug: use only when debugging",
+    "weekly: for weekly testing",
+    "push: tests to run every push",
+    "functional: tests against functional requirements"
+]
+
+[tool.coverage.run]
+source = [
+    "autohf/"
+]
+omit = [
+    "__init__.py"
+]
