@@ -1,37 +1,18 @@
+"""
+Library of wick contractions for UHF wave functions
+This implies the RDMs (one body Green's function)
+are in the form [G_up, G_dn]
+"""
 import numpy as np
 import jax.numpy as jnp
 import jax
 
-
-#from .options import (
-#    SlaterType,
-#    RepOptions,
-#    processes_args
-#)
-#from .rotation_tools import (
-#    jexpm,
-#    get_nonz,
-#    get_nonz_herm,
-#)
-#from .converters import (
-#    AutoHFHamiltonian,
-#    convertInitialSlaterDet,
-#    autoHF_2_afqmc_wfn
-#)
-
 known_terms = ["T","U","U1","U2","J","Jheis"]
-
-'''
-Library of wick contractions for UHF wave functions
-This implies the RDMs (one body Green's function)
-are in the form [G_up, G_dn]
-
-'''
 
 # one body hop - c^\dagger_i c_j
 # slightly special, assumes only one spin species
 def rhf_hop(rdm,hops):
-    return jnp.sum(rdm[hops[0], hops[1]])
+  return jnp.sum(rdm[hops[0], hops[1]])
 
 # Hubbard U n_{i\uparrow} n_{j\downarrow}
 def uhf_U(rdms,sites):
