@@ -639,8 +639,9 @@ def dump_settings(infile_settings=None,argparse_settings=None):
 
 
 # TODO: remove `cli_args`
-def lattice_hf(hamiltonian=None,lattice=None,
-    cli_args=None,settings=None,initial_guess=None,
+def lattice_hf(hamiltonian:AutoHFHamiltonian=None,
+    settings=None,initial_guess=None,
+    start_from=None,
     **kwargs):
     """
     Run Hartree-Fock on lattice Model Hamiltonians
@@ -662,16 +663,7 @@ def lattice_hf(hamiltonian=None,lattice=None,
             i.e. `lattice_hf(hamiltonian=hamiltonian)`"
         )
 
-    if lattice is None:
-        raise ValueError(
-            "Hartree-Fock requies a lattice to run. "
-            "Please provide a Lattice instance as an argument\
-             i.e. `lattice_hf(lattice=lattice)`"
-        )
-
-    if cli_args is not None:
-        print("[WARNING] cli_args for lattice_hf is deprecated and will be removed!")
-    args = processes_args(cli_args,settings)
+    args = processes_args(settings)
 
     if settings is None:
         infile_dict = read_input_params(args.inputfile)
@@ -684,33 +676,23 @@ def lattice_hf(hamiltonian=None,lattice=None,
         print("adding flags")
         os.environ['CUDA_VISIBLE_DEVICES'] = '' #just in case
 
+    if start_from is not None:
+        print("start_from is not implemented yet, ignoring!")
+
     print(jax.local_devices())
     print("default dtype:",jnp.zeros(1).dtype)
 
-
     if args.plot:
-      #import matplotlib
-      #matplotlib.use('tkagg') # TODO: troubleshoot for remote notebooks
       import matplotlib.pyplot as plt
 
     nelec = settings["nelec"] #TODO: this is in an awk place
+    force_complex = args.force_complex
 
     print("nelec:",nelec)
 
-    #Ne = nelec[0]
-
-    if cli_args is not None and "force_complex" in cli_args:
-        force_complex = cli_args.force_complex
-    elif settings is not None and "force_complex" in settings:
-        force_complex = settings["force_complex"]
-    else:
-        force_complex = False
-
-    hamil = AutoHFHamiltonian(hamiltonian,L=lattice.L)
-
-    Nbands = hamil.Nbands
-    N = hamil.nsites*Nbands
-    Nx,Ny = hamil.Nx,hamil.Ny
+    Nbands = hamiltonian.Nbands
+    N = hamiltonian.nsites*Nbands
+    Nx,Ny = hamiltonian.Nx,hamiltonian.Ny
 
     rng = np.random.default_rng(args.seed)
     rep_type = get_ansatz(args.ansatz)
@@ -729,7 +711,7 @@ def lattice_hf(hamiltonian=None,lattice=None,
     elif initial_guess is None:
         print("Using a free electron initial guess")
         phi0 = constructPhi0(
-            hamil.get_one_body(),
+            hamiltonian.get_one_body(),
             N,
             nelec,
             spin_symm=spin_symm,
@@ -746,7 +728,7 @@ def lattice_hf(hamiltonian=None,lattice=None,
 
     # TODO: clean up: put Hamiltonian terms in a dictionary and unpack below!
     energy,makeRDMs,state2Orbitals = makeEnergyCall(
-        hamil,
+        hamiltonian,
         spin_symm,
         # these are all kwargs now
         rep_type=rep_type,

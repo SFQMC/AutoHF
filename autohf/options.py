@@ -42,7 +42,7 @@ class SlaterType(enum.Enum):
     UHF = COLLINEAR = enum.auto()
     GHF = NONCOLLINEAR = enum.auto()
 
-def processes_args(args=None,args_dict:dict=None) -> SimpleNamespace:
+def processes_args(args_dict:dict=None) -> SimpleNamespace:
     """
     Processes autoHF arguments into a single namespace using
        default values if not specified. Accepts arguments from either
@@ -80,11 +80,6 @@ def processes_args(args=None,args_dict:dict=None) -> SimpleNamespace:
         random_initial_guess = False,
         delta = 0.001,
     )
-
-    if args is not None:
-        for key in _args.keys():
-            if getattr(args,key,False):
-                _args[key] = getattr(args,key)
 
     if args_dict is not None:
         for key in _args.keys():
