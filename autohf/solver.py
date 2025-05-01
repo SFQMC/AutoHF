@@ -15,7 +15,7 @@ import warnings
 
 import scipy.sparse as sps # TODO: Remove
 
-# TODO: make optional 
+# TODO: make optional
 from autohf.interfaces.afqmctools import fail_without_afqmctools,write_wfn,spin_squared,spin_z
 
 
@@ -691,7 +691,7 @@ def lattice_hf(hamiltonian:AutoHFHamiltonian=None,
     print("nelec:",nelec)
 
     Nbands = hamiltonian.Nbands
-    N = hamiltonian.nsites*Nbands
+    N = hamiltonian.N
     Nx,Ny = hamiltonian.Nx,hamiltonian.Ny
 
     rng = np.random.default_rng(args.seed)
@@ -1037,7 +1037,7 @@ def lattice_hf(hamiltonian:AutoHFHamiltonian=None,
         if E_final > E_ref:
           dE = E_final - E_ref
           warnings.warn(f"Final energy ({E_final}) is higher than reference energy ({E_ref})"
-                         f"by {dE}", RuntimeWarning, stacklevel=1)
+                         f" by {dE}", RuntimeWarning, stacklevel=1)
 
     if args.output is not None:
       state_afqmc = autoHF_2_afqmc_wfn(state,state2Orbitals,N,nelec,

@@ -1,4 +1,5 @@
 import importlib
+import logging as log
 
 # optionally import afqmctools
 if importlib.util.find_spec("afqmctools") is not None:
@@ -27,7 +28,7 @@ def fail_without_afqmctools(func):
 
 def skip_without_afqmctools(func):
     if not HAS_AFQMCTOOLS:
-        print(f"Skipping {func.__name__} because afqmctools is not installed.")
+        log.warning(f"Skipping {func.__name__} because afqmctools is not installed.")
         return lambda *args, **kwargs: None
     return func
 

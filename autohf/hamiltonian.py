@@ -30,21 +30,36 @@ class AutoHFHamiltonian:
         in internal format.
     """
 
-    def __init__(self,source=None,L=None) -> None:
+    def __init__(self,source=None, settings = None) -> None:
 
         self._terms = {}
         self._one_body = None
 
         if isinstance(source,Hamiltonian):
-            self._init_from_afqmctools(source,L)
+          L = settings["L"] #TODO: make this nicer?
+          self._init_from_afqmctools(source,L)
         elif isinstance(source,AutoHFHamiltonian):
             raise NotImplementedError
         elif source is None:
-            # in this case, we can still use .set() to add terms
-            pass
+            if settings is not None:
+              self.Nbands = settings.get("Nbands",1)
+              self.Nx,self.Ny = settings["L"]
+              self.N = self.Nx*self.Ny*self.Nbands
+            else:
+              # in this case, we can still use .set() to add terms
+              pass
         else:
             raise ValueError(f"[For Developers] Can't initialize AutoHF Hamiltonian  \
                                 from source of type {type(source)}")
+
+    def add_terms(self,**kwargs):
+      self._add_T(kwargs.get("T",None))
+      self._add_U(kwargs.get("U",None),kwargs.get("U1",None),kwargs.get("U2",None))
+      self._add_J(kwargs.get("J",None))
+      if "Jheisenberg" in kwargs: # alias
+        self._add_heisenberg(kwargs["Jheisenberg"])
+      self._add_heisenberg(kwargs.get("Jheis",None))
+
 
     def _init_from_afqmctools(self,hamiltonian,L):
 
@@ -54,70 +69,82 @@ class AutoHFHamiltonian:
         self.Nx,self.Ny = L
         #self.spin_symm = hamiltonian.spin_symm
 
-        self._add_T_from_afqmctools(hamiltonian)
-        self._add_U_from_afqmctools(hamiltonian)
-        self._add_J_from_afqmctools(hamiltonian)
-        self._add_heisenberg_from_afqmctools(hamiltonian)
-
-    def _add_T_from_afqmctools(self,hamiltonian):
         T = _get_T(hamiltonian)
-        self._one_body = T
-        # assume [up,dn] for collinear
-        # and [total] for NC
-
-        if T is not None:
-            Tvals = []
-            TSites = []
-
-            # up to one T matrix per spin sector
-            for sigma,T_sigma in enumerate(T):
-                # TODO: make this output cleaner!
-                print(f"Reading hopping from spin sector {sigma}")
-                Tvals.append(np.unique(T_sigma[T_sigma != 0.0]))
-                TSites.append([ _sites_where(T_sigma,t) for t in Tvals[sigma] ])
-
-            self._terms["T"] = (Tvals,TSites)
-            print(f"Added unique T terms: {Tvals}")
-
-    def _add_U_from_afqmctools(self,hamiltonian):
+        self._add_T(T)
         U,U1,U2 = _get_U(hamiltonian)
-
-        if U is not None:
-            Uvals = np.unique(U[U != 0.0])
-            USites = [ _sites_where(U,u)[0] for u in Uvals ]
-
-            self._terms["U"] = (Uvals,USites)
-            print(f"Added unique U terms: {Uvals}")
-
-        if U1 is not None:
-            U1vals = np.unique(U1[U1 != 0.0])
-            U1Sites = [ _sites_where(U1,u,i_less_than_j=True) for u in U1vals ]
-            self._terms["U1"] = (U1vals,U1Sites)
-            print(f"Added unique U1 terms: {U1vals}")
-
-        if U2 is not None:
-            U2vals = np.unique(U2[U2 != 0.0])
-            U2Sites = [ _sites_where(U2,u,i_less_than_j=True) for u in U2vals ]
-            self._terms["U2"] = (U2vals,U2Sites)
-            print(f"Added unique U2 terms: {U2vals}")
-
-    def _add_J_from_afqmctools(self,hamiltonian):
+        self._add_U(U,U1,U2)
         J = _get_J(hamiltonian)
-
-        if J is not None:
-            Jvals = np.unique(J[J != 0.0])
-            JSites = [ _sites_where(J,j,i_less_than_j=True) for j in Jvals ]
-            self._terms["J"] = (Jvals,JSites)
-            print(f"Added unique J terms: {Jvals}")
-
-    def _add_heisenberg_from_afqmctools(self,hamiltonian):
+        self._add_J(hamiltonian)
         J = _get_heisenberg(hamiltonian)
+        self._add_heisenberg(J)
 
-        if J is not None:
-            Jvals = np.unique(J[J != 0.0])
-            JSites = [ _sites_where(J,j,i_less_than_j=True) for j in Jvals ]
-            self._terms["J_heisenberg"] = (Jvals,JSites)
-            print(f"Added unique J_heisenberg terms: {Jvals}")
+    def _add_T(self,T):
+      # assume [up,dn] for collinear
+      # and [total] for NC
+
+      if T is not None:
+          Tvals = []
+          TSites = []
+
+          # clean up shaping
+          if len(T.shape) == 2:
+            T = np.stack([T,T])
+
+          if len(T.shape) != 3:
+            raise RuntimeError(f"Passed T matrix has shape {T.shape}; "
+                                "needs to be (nspin,N,N) instead")
+          # up to one T matrix per spin sector
+          for sigma,T_sigma in enumerate(T):
+              # TODO: make this output cleaner!
+              print(f"Reading hopping from spin sector {sigma}")
+              Tvals.append(np.unique(T_sigma[T_sigma != 0.0]))
+              TSites.append([ _sites_where(T_sigma,t) for t in Tvals[sigma] ])
+
+          self._terms["T"] = (Tvals,TSites)
+          print(f"Added unique T terms: {Tvals}")
+
+      self._one_body = T
+    #def _add_T_from_afqmctools(self,hamiltonian):
+    #    T = _get_T(hamiltonian)
+    #    self._add_T(T)
+
+    def _add_U(self,U,U1,U2):
+      if U is not None:
+        if isinstance(U,float) or isinstance(U,int):
+          U = np.ones(self.N)*U
+        if len(U.shape) == 1:
+          U = np.diag(U)
+        Uvals = np.unique(U[U != 0.0])
+        USites = [ _sites_where(U,u)[0] for u in Uvals ]
+
+        self._terms["U"] = (Uvals,USites)
+        print(f"Added unique U terms: {Uvals}")
+
+      if U1 is not None:
+        U1vals = np.unique(U1[U1 != 0.0])
+        U1Sites = [ _sites_where(U1,u,i_less_than_j=True) for u in U1vals ]
+        self._terms["U1"] = (U1vals,U1Sites)
+        print(f"Added unique U1 terms: {U1vals}")
+
+      if U2 is not None:
+        U2vals = np.unique(U2[U2 != 0.0])
+        U2Sites = [ _sites_where(U2,u,i_less_than_j=True) for u in U2vals ]
+        self._terms["U2"] = (U2vals,U2Sites)
+        print(f"Added unique U2 terms: {U2vals}")
+
+    def _add_J(self,J):
+      if J is not None:
+        Jvals = np.unique(J[J != 0.0])
+        JSites = [ _sites_where(J,j,i_less_than_j=True) for j in Jvals ]
+        self._terms["J"] = (Jvals,JSites)
+        print(f"Added unique J terms: {Jvals}")
+
+    def _add_heisenberg(self,J):
+      if J is not None:
+        Jvals = np.unique(J[J != 0.0])
+        JSites = [ _sites_where(J,j,i_less_than_j=True) for j in Jvals ]
+        self._terms["J_heisenberg"] = (Jvals,JSites)
+        print(f"Added unique J_heisenberg terms: {Jvals}")
 
     def keys(self):
         return self._terms.keys()
@@ -127,7 +154,7 @@ class AutoHFHamiltonian:
 
     def get(self,key,default=None):
         return self._terms.get(key,default)
-    
+
     def set(self,key,value):
         # TODO: filter based on allowed keys
         if key not in uhf_known_terms and key not in ghf_known_terms:
@@ -137,7 +164,7 @@ class AutoHFHamiltonian:
 
     def get_one_body(self):
       return self._one_body
-    
+
 
 def _sites_where(M, val, i_less_than_j=False):
     inds = np.argwhere(M == val)
