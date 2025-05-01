@@ -4,7 +4,7 @@ import numpy as np
 from .options import RepOptions,SlaterType
 import jax.numpy as jnp
 
-@fail_without_afqmctools
+#@fail_without_afqmctools
 def autoHF_2_afqmc_wfn(state,state2Orbitals,N,Ne,
     rep=RepOptions.SLATERDET_ROT,
     spin_symm=SlaterType.COLLINEAR):
@@ -20,7 +20,7 @@ def autoHF_2_afqmc_wfn(state,state2Orbitals,N,Ne,
     else:
         raise ValueError("Unknown spin symmetry requested")
 
-@fail_without_afqmctools
+#@fail_without_afqmctools
 def autoHF_2_afqmc_wfn_noncollinear(orbs,N,nelec,
     rep=RepOptions.SLATERDET_ROT):
     '''
@@ -28,7 +28,7 @@ def autoHF_2_afqmc_wfn_noncollinear(orbs,N,nelec,
     state_afqmc = orbs[0][:,:nelec[0]+nelec[1]]
     return state_afqmc
 
-@fail_without_afqmctools
+#@fail_without_afqmctools
 def autoHF_2_afqmc_wfn_collinear(orbs,N,nelec,rep=RepOptions.SLATERDET_ROT):
     '''
     '''

@@ -13,7 +13,7 @@ class TestAutoHFSolver:
         Tests that the lattice_hf solver can be started with
         a variety of initial conditions.
         """
-        
+
         hf_settings = dict(
             ansatz = 'SD_ROT',
             numSteps = 10,
@@ -30,12 +30,12 @@ class TestAutoHFSolver:
 
         assert results is not None
 
-    
+
     def test_restart(self,hubbard_4x4):
         """
-        Tests that the lattice_hf solver 
+        Tests that the lattice_hf solver
         can be restarted from a previous calculation.
-        This allows settings (or even the Hamiltonian) to be changed 
+        This allows settings (or even the Hamiltonian) to be changed
         after some initial optimization.
 
         Parameters
@@ -74,7 +74,7 @@ class TestAutoHFSolver:
     def test_expected_errors(self):
         """
         Tests that the lattice_hf solver raises the expected errors.
-        
+
         TODO: use pytest mark parameterize to test many cases here.
         """
         with pytest.raises(ValueError):

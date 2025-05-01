@@ -2,6 +2,8 @@ import pytest
 import numpy as np
 
 afqmctools = pytest.importorskip("afqmctools")
+from afqmctools.hamiltonian.model.director import HamiltonianDirector
+from afqmctools.hamiltonian.model.builder import HamiltonianBuilder
 
 from autohf.converters import AutoHFHamiltonian
 

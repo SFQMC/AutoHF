@@ -707,7 +707,9 @@ def lattice_hf(hamiltonian:AutoHFHamiltonian=None,
 
     if args.random_initial_guess and initial_guess is None:
         print("Using a random initial guess")
-        phi0 = construct_random_Phi(rng,N,nelec,spin_symm=spin_symm,delta=getattr(args,"delta",0.001))
+        phi0 = construct_random_Phi(rng,N,nelec,
+                                    spin_symm=spin_symm,
+                                    delta=getattr(args,"delta",0.001))
     elif initial_guess is None:
         print("Using a free electron initial guess")
         phi0 = constructPhi0(
