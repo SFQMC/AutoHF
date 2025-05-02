@@ -921,11 +921,13 @@ def lattice_hf(hamiltonian:AutoHFHamiltonian=None,
             saveStates(state,state2Orbitals,allE,args,args.dumpTrials)
             state = state[bestState]
         elif args.opt_method == "lbfgs":
-            # TODO: allow access to other kwargs to pass
+            # TODO: have this be the first run of a more useful function
             print(f"Initial Energy: {loss_v(state0)[0]}",flush=True)
             extraops = kwargs.get("jaxoptargs",{})
-            solver = jaxopt.LBFGS(fun=loss,value_and_grad=True,
-                maxiter=numOptSteps,**extraops)
+            solver = jaxopt.LBFGS(fun=loss,
+                                  value_and_grad=True,
+                                  maxiter=numOptSteps,
+                                  **extraops)
             run_v = (jax.vmap(solver.run))
             res = run_v(state0)
 
@@ -1034,8 +1036,10 @@ def lattice_hf(hamiltonian:AutoHFHamiltonian=None,
 
             plt.show()
 
+        # We could potentially cache this from the optimization output
+        # but I like the idea that this is a double check that the state is sane
         E_final = energy(state)
-        print(f"Variational energy of final HF state: {energy(state)}")
+        print(f"Variational energy of final HF state: {E_final}")
         if E_final > E_ref:
           dE = E_final - E_ref
           warnings.warn(f"Final energy ({E_final}) is higher than reference energy ({E_ref})"
@@ -1071,9 +1075,16 @@ def lattice_hf(hamiltonian:AutoHFHamiltonian=None,
           )
 
     # TODO: add more return data
-    data = { "E_final": np.array(energy(state)),
+    # This API is not 100% fixed, but seems useful
+    data = { "E_final": np.array(E_final),
             "orbitals": state2Orbitals(state),
             "state": state,
-            # This API is not 100% fixed, but seems useful
-            "phi0":phi0,"makeRDMs":makeRDMs,"energy_func":energy}
-    return data
+            "phi0":phi0,}
+
+    # data_functions can't be pickled, so split off but useful
+    data_functions = {"makeRDMs":makeRDMs,
+                      "state2Orbitals":state2Orbitals,
+                      "energy_func":energy,
+                      "loss":loss,
+                      "loss_v":loss_v}
+    return data, data_functions
