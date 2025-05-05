@@ -89,11 +89,18 @@ class AutoHFHamiltonian:
       TSites = []
 
       # clean up shaping
-      if len(T.shape) == 2:
-        T = np.stack([T, T])
+      if isinstance(T, np.ndarray):
+        if len(T.shape) == 2:
+          T = np.stack([T, T])
 
-      if len(T.shape) != 3:
-        raise RuntimeError(f"Passed T matrix has shape {T.shape}; needs to be (nspin,N,N) instead")
+        if len(T.shape) != 3:
+          raise RuntimeError(
+            f"Passed T matrix has shape {T.shape}; needs to be (nspin,N,N) instead"
+          )
+
+      if (isinstance(T, list) or isinstance(T, tuple)) and len(T) == 1:
+        T = (T[0], T[0])
+
       # up to one T matrix per spin sector
       for sigma, T_sigma in enumerate(T):
         # TODO: make this output cleaner!
