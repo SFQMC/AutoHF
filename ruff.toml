@@ -1,6 +1,10 @@
 line-length = 100
-
+indent-width = 2
 target-version = "py39" # Minimum jax version
+
+[format]
+indent-style = "space"
+docstring-code-format = true
 
 [lint]
 select =[
