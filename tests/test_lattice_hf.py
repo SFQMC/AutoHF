@@ -40,11 +40,12 @@ class TestAutoHFSolver:
       ansatz="SD_ROT", numSteps=10, nelec=(8, 8), numTrials=3, seed=12345, noncollinear=False
     )
 
-    results = lattice_hf(hamiltonian=hubbard_4x4, settings=hf_settings)
+    results = lattice_hf(hubbard_4x4, settings=hf_settings)
 
+    hf_settings["ansatz"] = "SD"
     hf_settings["riemannian"] = True
 
-    results = lattice_hf(hamiltonian=hubbard_4x4, settings=hf_settings, start_from=results)
+    results = lattice_hf(hubbard_4x4, settings=hf_settings, start_from=results)
 
     # TODO: need to think about how to test that this
     #         did what we wanted (this only checks that it runs
@@ -58,4 +59,4 @@ class TestAutoHFSolver:
     TODO: use pytest mark parameterize to test many cases here.
     """
     with pytest.raises(ValueError):
-      lattice_hf(hamiltonian=None, settings={})
+      lattice_hf(None, settings={})
