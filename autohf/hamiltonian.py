@@ -121,6 +121,8 @@ class AutoHFHamiltonian:
     if U is not None:
       if isinstance(U, float) or isinstance(U, int):
         U = np.ones(self.N) * U
+      if isinstance(U, list) or isinstance(U, tuple):
+        U = np.array(U)
       if len(U.shape) == 1:
         U = np.diag(U)
       Uvals = np.unique(U[U != 0.0])

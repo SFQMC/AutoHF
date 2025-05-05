@@ -10,26 +10,19 @@ class TestAutoHFHamiltonian:
   """
 
   # 3x3 square lattice with periodic boundary conditions
-  T = [
-    [0.0, -1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0],
-    [-1.0, 0.0, -1.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0],
-    [-1.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0],
-    [-1.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 0.0, 0.0],
-    [0.0, -1.0, 0.0, -1.0, 0.0, -1.0, 0.0, -1.0, 0.0],
-    [0.0, 0.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, -1.0],
-    [-1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0, -1.0],
-    [0.0, -1.0, 0.0, 0.0, -1.0, 0.0, -1.0, 0.0, -1.0],
-    [0.0, 0.0, -1.0, 0.0, 0.0, -1.0, -1.0, -1.0, 0.0],
-    [0.0, -1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0],
-    [-1.0, 0.0, -1.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0],
-    [-1.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0],
-    [-1.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 0.0, 0.0],
-    [0.0, -1.0, 0.0, -1.0, 0.0, -1.0, 0.0, -1.0, 0.0],
-    [0.0, 0.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, -1.0],
-    [-1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0, -1.0],
-    [0.0, -1.0, 0.0, 0.0, -1.0, 0.0, -1.0, 0.0, -1.0],
-    [0.0, 0.0, -1.0, 0.0, 0.0, -1.0, -1.0, -1.0, 0.0],
-  ]
+  T = np.array(
+    [
+      [0.0, -1.0, -1.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0],
+      [-1.0, 0.0, -1.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0],
+      [-1.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0],
+      [-1.0, 0.0, 0.0, 0.0, -1.0, -1.0, -1.0, 0.0, 0.0],
+      [0.0, -1.0, 0.0, -1.0, 0.0, -1.0, 0.0, -1.0, 0.0],
+      [0.0, 0.0, -1.0, -1.0, -1.0, 0.0, 0.0, 0.0, -1.0],
+      [-1.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0, -1.0, -1.0],
+      [0.0, -1.0, 0.0, 0.0, -1.0, 0.0, -1.0, 0.0, -1.0],
+      [0.0, 0.0, -1.0, 0.0, 0.0, -1.0, -1.0, -1.0, 0.0],
+    ]
+  )
 
   T_auto_HF = ([np.array([-1.]), np.array([-1.])],
                  [[(np.array([i//4 for i in range(4*9)]),
@@ -64,15 +57,14 @@ class TestAutoHFHamiltonian:
     """
     Returns a dummy Hamiltonian for testing purposes.
     """
-    return AutoHFHamiltonian()
+    return AutoHFHamiltonian(settings={"L": (3, 3)})
 
-  @pytest.mark.skip # TODO
   @pytest.mark.parametrize(
     ("term", "value", "expected"), [("T", T, T_auto_HF), ("U", U, U_auto_HF)]
   )
-  def test_terms(self, term, value, expected, dummy_hamiltonian):
+  def test_add_terms(self, term, value, expected, dummy_hamiltonian):
     """
-    Tests that the set method works as expected.
+    Tests that the add_terms method works as expected.
 
     Q: how will we check that the output is correct?
 
@@ -81,6 +73,33 @@ class TestAutoHFHamiltonian:
     additional information, but the latter will use to just save the correct
     term.
     """
-    # TODO: need to convert from the value to the correct format.
-    dummy_hamiltonian.set(term, value)
-    assert dummy_hamiltonian.get(term) == expected
+    dummy_hamiltonian.add_terms(**{term: value})
+    unique_vals, sites = dummy_hamiltonian.get(term)
+    assert np.allclose(expected[0], unique_vals)
+    assert np.allclose(expected[1], sites)
+
+  @pytest.mark.parametrize(("Tmat"), [T, [T], [T, T], (T,), (T, T), np.stack([T, T])])
+  def test_hopping_types(self, Tmat):
+    term = "T"
+    expected = self.T_auto_HF
+
+    H = AutoHFHamiltonian(settings={"L": (3, 3)})
+    # Pass direct matrix (up=down)
+    H.add_terms(T=Tmat)
+
+    unique_vals, sites = H.get(term)
+    assert np.allclose(expected[0], unique_vals)
+    assert np.allclose(expected[1], sites)
+
+  def test_hopping_pinned(self):
+    T = self.T
+    term = "T"
+    expected = self.T_auto_HF
+
+    # pass list
+    H = AutoHFHamiltonian(settings={"L": (3, 3)})
+    H.add_terms(T=[T + 0.1 * np.eye(9), T - 0.1 * np.eye(9)])
+
+    unique_vals, sites = H.get(term)
+    assert len(unique_vals) == 2
+    assert len(unique_vals[0]) == 2
