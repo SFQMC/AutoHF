@@ -7,7 +7,7 @@ name = "autohf"
 version = "0.0.1"
 requires-python = ">3.9"
 dependencies = [
-    "jax",
+    "jax <= 0.4.38",
     "optax",
     "jaxlib",
     "jaxopt",
@@ -45,7 +45,6 @@ minversion = "6.0"
 addopts = "--verbose --html=./.htmlpytest/pytest.html --strict-markers"
 testpaths = [
     "tests",
-    "autohf/tests"
 ]
 markers = [
     "dev: for tests used as used for test-driven development (TDD)",
