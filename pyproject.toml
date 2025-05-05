@@ -45,7 +45,6 @@ minversion = "6.0"
 addopts = "--verbose --html=./.htmlpytest/pytest.html --strict-markers"
 testpaths = [
     "tests",
-    "autohf/tests"
 ]
 markers = [
     "dev: for tests used as used for test-driven development (TDD)",
