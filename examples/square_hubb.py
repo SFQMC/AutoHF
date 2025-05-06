@@ -32,24 +32,32 @@ def makeT(Nx, Ny, xperiodic=True, yperiodic=True):
   return T
 
 
+#### Define Parameters
 Nx, Ny = 4, 4
+U = 1.5
+Ne = 7
+numSteps = 100
+numTrials = 4
+
+hf_settings = {
+  "verbose": False,
+  "numSteps": numSteps,
+  "opt_method": "lbfgs",
+  "ansatz": "SD_ROT",
+  "numTrials": numTrials,
+  "gpu": False,
+  "nelec": (Ne, Ne),
+  "noncollinear": False,
+}
+
+#### Setup calculation
 N = Nx * Ny
 T = makeT(Nx, Ny)
 
 settings = {"L": (Nx, Ny)}  # change to shape?
 H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=1.5)
+H.add_terms(T=T, U=U)
 
-hf_settings = {
-  "verbose": False,
-  "numSteps": 100,
-  "opt_method": "lbfgs",
-  "ansatz": "SD_ROT",
-  "numTrials": 4,
-  "gpu": False,
-  "nelec": (7, 7),  # should this be moved?
-  # "dumpTrials"
-}
 autohf.solver.lattice_hf(
   H,
   settings=hf_settings,

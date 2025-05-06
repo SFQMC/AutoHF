@@ -41,26 +41,35 @@ hops = (np.array([ 0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2
                          3,  4, 28, 29, 33, 35,  4,  5, 24, 29, 30, 34])
         )  # fmt: skip
 
+
+#### Define Parameters
 Nx, Ny = 6, 6
+U = 8
+Ne = 18
+numSteps = 2000
+numTrials = 4
+
+hf_settings = {
+  "verbose": False,
+  "numSteps": numSteps,
+  "opt_method": "lbfgs",
+  "ansatz": "SD_ROT",
+  "numTrials": numTrials,
+  "gpu": False,
+  "nelec": (Ne, Ne),
+  "noncollinear": True,
+}
+
+#### Setup calculation
 N = Nx * Ny
+assert Nx == 6 and Ny == 6  # harded coded here
 T = np.zeros((N, N))
 T[hops] = -1
 
 settings = {"L": (Nx, Ny)}
 H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=8)
+H.add_terms(T=T, U=U)
 
-hf_settings = {
-  "verbose": False,
-  "numSteps": 2000,
-  "opt_method": "lbfgs",
-  "ansatz": "SD_ROT",
-  "numTrials": 4,
-  "gpu": False,
-  "nelec": (18, 18),
-  "noncollinear": True,
-  # "dumpTrials"
-}
 autohf.solver.lattice_hf(
   H,
   settings=hf_settings,
