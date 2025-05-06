@@ -85,7 +85,7 @@ class TestAutoHFHamiltonian:
 
     H = AutoHFHamiltonian(settings={"L": (3, 3)})
     # Pass direct matrix (up=down)
-    H.add_terms(T=Tmat)
+    H.add_terms(**{term: Tmat})
 
     unique_vals, sites = H.get(term)
     assert np.allclose(expected[0], unique_vals)
@@ -94,7 +94,6 @@ class TestAutoHFHamiltonian:
   def test_hopping_pinned(self):
     T = self.T
     term = "T"
-    expected = self.T_auto_HF
 
     # pass list
     H = AutoHFHamiltonian(settings={"L": (3, 3)})
@@ -103,3 +102,24 @@ class TestAutoHFHamiltonian:
     unique_vals, sites = H.get(term)
     assert len(unique_vals) == 2
     assert len(unique_vals[0]) == 2
+
+  @pytest.mark.parametrize(
+    ("U"),
+    [
+      4,
+      4.0,
+      np.diag(U),
+      U,
+    ],
+  )
+  def test_U_types(self, U):
+    term = "U"
+    expected = self.U_auto_HF
+
+    H = AutoHFHamiltonian(settings={"L": (3, 3)})
+    # Pass direct matrix (up=down)
+    H.add_terms(**{term: U})
+
+    unique_vals, sites = H.get(term)
+    assert np.allclose(expected[0], unique_vals)
+    assert np.allclose(expected[1], sites)

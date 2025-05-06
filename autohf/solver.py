@@ -21,6 +21,7 @@ from autohf.interfaces.afqmctools import fail_without_afqmctools, write_wfn, spi
 
 
 from .io import read_input_params
+from .tools import sdToRDM, sdToRDM_noncollinear
 from .options import SlaterType, RepOptions, get_ansatz, processes_args
 from .rotation_tools import (
   jexpm,
@@ -45,7 +46,7 @@ from .terms.ghf import (
 )
 
 
-def saveStates(states, orbFunc, energies, args, fname):
+def saveStates(states, orbFunc, energies, phi0, args, fname, dumpTrials):
   """Save all the trial states in an extra file
   Will automatically save based on npy/pkl/pickle file extension
   Does nothing if fname is empty/None
@@ -54,47 +55,36 @@ def saveStates(states, orbFunc, energies, args, fname):
 
   if fname == "" or fname is None:
     return
-  orbs = jax.vmap(orbFunc)(states)
-  data = {"states": [np.array(o) for o in orbs], "E": np.array(energies), "args": args}
+  Es = np.array(energies)
+  best = np.argmin(Es)
+  o = orbFunc(states[best])
+  data = {
+    "state": states[best],
+    "Es": Es,
+    "E": Es[best],
+    "orbitals": o,
+    "args": args,
+    "phi0": phi0,
+    "states": np.array(states),
+  }
+  if dumpTrials:
+    orbs = [np.array(o) for o in jax.vmap(orbFunc)(states)]
+    data["orbitals"] = orbs
+
   if fname[-4:] == ".npy":
     print("Saving states as npy:", fname)
     np.save(fname, [np.array(o) for o in orbs])
   elif fname[-3:] == ".h5":
-    raise NotImplementedError("Dumping states to h5 not supported")
+    raise NotImplementedError("Dumping states to h5 not yet supported")
   elif fname[-4:] == ".pkl" or fname[-7:] == ".pickle":
     print("Saving Pickle:", fname)
     with open(fname, "wb") as f:
       pickle.dump(data, f)
   else:
-    print("Warning! Saving states with picke extension", fname + ".pkl")
+    print("Ignoring file extension. Saving states with pickle extension", fname + ".pkl")
     print("Saving Pickle:", fname + ".pkl")
     with open(fname + ".pkl", "wb") as f:
       pickle.dump(data, f)
-
-
-@jax.jit
-def sdToRDM(sds):
-  r"""takes (2,N,Ne) orbitals
-  returns <\psi|c^dag c | \psi>/<\psi|\psi>
-  """
-  # (2,N,Ne)
-  # because we could have different number of particles, let's not batch
-  # but TODO: make batched later
-  phi_up, phi_dn = sds
-  rdm_up = phi_up.conj() @ jnp.linalg.solve(phi_up.T @ phi_up.conj(), phi_up.T)
-  rdm_dn = phi_dn.conj() @ jnp.linalg.solve(phi_dn.T @ phi_dn.conj(), phi_dn.T)
-  return rdm_up, rdm_dn
-
-
-@jax.jit
-def sdToRDM_noncollinear(sds):
-  r"""takes (1,N,Ne_total) orbitals
-  returns <\psi|c^dag c | \psi>/<\psi|\psi>
-  """
-  # (1,N,Ne)
-  phi = sds[0]
-  rdm = phi.conj() @ jnp.linalg.solve(phi.T @ phi.conj(), phi.T)
-  return rdm  # tuple for consistency with the collinear case!
 
 
 def construct_random_Phi(rng, N, Nes, spin_symm=SlaterType.COLLINEAR, delta=0.00001, Phi=None):
@@ -645,27 +635,8 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
   return jax.jit(energyCall), jax.jit(rdmFunc), orbFunc
 
 
-def dump_settings(infile_settings=None, argparse_settings=None):
-  if infile_settings is None:
-    infile_settings = {}
-
-    def _dump_dict(d: dict, offset=0):
-      for key, value in d.items():
-        print(" " * offset + f"{key:30s} {str(value):>30s}")
-
-    print("\n ==== Input File Settings ===== \n")
-    # these are nested!
-    for key, value in infile_settings.items():
-      print("\n    Input Block:", key)
-      _dump_dict(value, offset=8)
-
-    print("\n ==== Command Line Settings ===== \n")
-    _dump_dict(vars(argparse_settings), offset=8)
-
-
-# TODO: remove `cli_args`
 def lattice_hf(
-  hamiltonian: AutoHFHamiltonian = None,
+  hamiltonian: AutoHFHamiltonian,
   settings=None,
   initial_guess=None,
   start_from=None,
@@ -938,7 +909,7 @@ def lattice_hf(
       if args.plot:
         plt.show()
 
-      saveStates(state, state2Orbitals, allE, args, args.dumpTrials)
+      saveStates(state, state2Orbitals, allE, phi0, args, args.output, args.dumpTrials)
       state = state[bestState]
     elif args.opt_method == "lbfgs":
       # TODO: have this be the first run of a more useful function
@@ -963,7 +934,9 @@ def lattice_hf(
           stacklevel=2,
         )
 
-      saveStates(res.params, state2Orbitals, res.state.value, args, args.dumpTrials)
+      saveStates(
+        res.params, state2Orbitals, res.state.value, phi0, args, args.output, args.dumpTrials
+      )
       if args.plot:
         rdms = makeRDMs(state)
         nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
@@ -1027,7 +1000,7 @@ def lattice_hf(
       )
       print(ret.message, flush=True)
       state = ret.x.reshape(state0.shape)
-      saveStates(state, state2Orbitals, ret.fun, args, args.dumpTrials)
+      saveStates(state, state2Orbitals, ret.fun, phi0, args, args.output, args.dumpTrials)
       if args.plot:
         rdms = makeRDMs(state)
         nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
@@ -1079,26 +1052,6 @@ def lattice_hf(
         f"Final energy ({E_final}) is higher than reference energy ({E_ref}) by {dE}",
         RuntimeWarning,
         stacklevel=1,
-      )
-
-  if args.output is not None:
-    state_afqmc = autoHF_2_afqmc_wfn(
-      state, state2Orbitals, N, nelec, rep=rep_type, spin_symm=spin_symm
-    )
-
-    coeffs = np.array([1.0 + 0j])
-    if spin_symm == SlaterType.COLLINEAR:
-      wfn = np.zeros((1, N, sum(nelec)), dtype=np.complex128)
-      wfn[0, :, :] = state_afqmc[:, :]
-
-      write_wfn(filename=args.output, wfn=[coeffs, wfn], walker_type="uhf", nelec=nelec, norb=N)
-
-    elif spin_symm == SlaterType.NONCOLLINEAR:
-      wfn = np.zeros((1, 2 * N, sum(nelec)), dtype=np.complex128)
-      wfn[0, :, :] = state_afqmc[:, :]
-
-      write_wfn(
-        filename=args.output, wfn=[coeffs, wfn], walker_type="ghf", nelec=(sum(nelec), 0), norb=N
       )
 
   # TODO: add more return data
