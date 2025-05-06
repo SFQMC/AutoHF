@@ -672,6 +672,7 @@ def lattice_hf(
 
   eta = float(args.eta)
   numOptSteps = int(args.numSteps)
+  state0_scale = float(args.state0_scale)
 
   if not args.gpu:
     print("adding flags")
@@ -750,30 +751,29 @@ def lattice_hf(
       num_params = N * (N + 1) // 2
       nonz = get_nonz(N)
       state0 = np.zeros((numTrials, 2, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=0.1, size=(numTrials, len(nonz)))
-      state0[:, 1, nonz] = rng.normal(scale=0.1, size=(numTrials, len(nonz)))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
+      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
     else:
       num_params = (2 * N) * (2 * N + 1) // 2
       nonz = get_nonz(2 * N)
       state0 = np.zeros((numTrials, 1, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=0.1, size=(numTrials, len(nonz)))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.SLATERDET_ROTC:
     print("Running in Hermitian (Complex) Rotation Mode")
     if force_complex:
-      # raise NotImplementedError("complex rotation not implemented yet")
       print("Requested force_complex, but already complex!")
     if not args.noncollinear:
       num_params = N * (N + 1) // 2
       nonz = get_nonz_herm(N)
       state0 = np.zeros((numTrials, 2, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=0.1, size=(numTrials, len(nonz)))
-      state0[:, 1, nonz] = rng.normal(scale=0.1, size=(numTrials, len(nonz)))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
+      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
     else:
       num_params = (2 * N) * (2 * N + 1) // 2
       nonz = get_nonz_herm(2 * N)
       state0 = np.zeros((numTrials, 1, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=0.1, size=(numTrials, len(nonz)))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.SLATERDET:
     print("Running in Slater Determinant Mode")
@@ -782,10 +782,10 @@ def lattice_hf(
       phi0 = np.stack(phi0)
     state0 = phi0.copy()
     state0_ref = state0.copy()
-    state0 = state0 + rng.normal(scale=0.1, size=(numTrials, *state0.shape))
+    state0 = state0 + rng.normal(scale=state0_scale, size=(numTrials, *state0.shape))
     if force_complex:
       print("Forcing complex orbitals")
-      state0 += 1j * rng.normal(scale=0.001, size=(numTrials, *state0.shape))
+      state0 += 1j * rng.normal(scale=state0_scale / 100, size=(numTrials, *state0.shape))
   elif rep_type == RepOptions.SLATERDETC:
     print("Running in Complex Slater Determinant Mode")
     # TODO: take care of padding ala afqmctools
@@ -793,16 +793,16 @@ def lattice_hf(
       phi0 = np.stack(phi0)
     state0 = jnp.stack([phi0.real, phi0.imag])
     state0_ref = state0.copy()
-    state0 = state0 + rng.normal(scale=0.1, size=(numTrials, *state0.shape))
+    state0 = state0 + rng.normal(scale=state0_scale, size=(numTrials, *state0.shape))
     if force_complex:
       print("Forcing complex orbitals")
-      state0 += 1j * rng.normal(scale=0.001, size=(numTrials, *state0.shape))
+      state0 += 1j * rng.normal(scale=state0_scale / 100, size=(numTrials, *state0.shape))
   elif rep_type == RepOptions.DIAG:
     print("Running in Diagonalization Mode")
     if not args.noncollinear:
-      state0 = rng.normal(scale=0.01, size=((numTrials, 2, N, N)))
+      state0 = rng.normal(scale=state0_scale / 10, size=((numTrials, 2, N, N)))
     else:
-      state0 = rng.normal(scale=0.01, size=((numTrials, 2 * N, 2 * N)))
+      state0 = rng.normal(scale=state0_scale / 10, size=((numTrials, 2 * N, 2 * N)))
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.CUSTOM:
     state0 = kwargs["state0"]

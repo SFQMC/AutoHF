@@ -58,6 +58,7 @@ hf_settings = {
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": True,
+  "state0_scale": 0.001,  # start close to U=0
 }
 
 #### Setup calculation

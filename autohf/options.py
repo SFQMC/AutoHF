@@ -81,6 +81,7 @@ def processes_args(args_dict: dict = None) -> SimpleNamespace:
     dumpTrials=False,
     measure_spin=False,
     random_initial_phi0=False,
+    state0_scale=0.01,
   )
 
   if args_dict is not None:

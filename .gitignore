@@ -189,3 +189,6 @@ Sessionx.vim
 tags
 # Persistent undo
 [._]*.un~
+
+# example pickle files
+examples/**/*.pkl
