@@ -439,8 +439,8 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     # 2. rdmFunc : state->RDM
     # 3. state0 (initial state)
     # 4. state0_ref (initial state for RHF, default: 0*state0)
-    orbFunc = kwargs["orbFunc"]
-    rdmFunc = kwargs["rdmFunc"]
+    orbFunc = kwargs["state2orbitals"]
+    rdmFunc = kwargs["state2rdm"]
     # state0 = kwargs["state0"]
   else:
     raise NotImplementedError(f"Rep type {rep_type} Not Implemented (try CUSTOM)?")

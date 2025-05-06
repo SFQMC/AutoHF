@@ -26,3 +26,14 @@ def sdToRDM_noncollinear(sds):
   phi = sds[0]
   rdm = phi.conj() @ jnp.linalg.solve(phi.T @ phi.conj(), phi.T)
   return rdm  # tuple for consistency with the collinear case!
+
+
+def uhfToGhf(x):
+  """Converts [o_up, o_dn] UHF like input to a
+  [ o_up 0    ]
+  [  0   o_dn ]
+  block diagonal GHF form
+  """
+  if isinstance(x, np.ndarray):
+    return np.block([[x[0], np.zeros_like(x[1])], [np.zeros_like(x[0]), x[1]]])
+  return jnp.block([[x[0], jnp.zeros_like(x[1])], [jnp.zeros_like(x[0]), x[1]]])
