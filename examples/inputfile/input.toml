@@ -1,0 +1,21 @@
+[hamiltonian]
+U = 2.5
+
+[lattice]
+L1 = 4
+L2 = 4
+boundary1 = "PBC"
+boundary2 = "PBC"
+type = "square"
+
+[misc_params]
+nelec = [7,7]
+
+[autohf]
+numSteps = 500
+opt_method = "lbfgs"
+ansatz = "SD"
+riemannian = true
+numTrials = 8
+gpu = false
+noncollinear=true

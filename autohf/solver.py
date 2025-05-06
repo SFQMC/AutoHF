@@ -640,6 +640,7 @@ def lattice_hf(
   settings=None,
   initial_guess=None,
   start_from=None,
+  inputfile=None,
   **kwargs,
 ):
   """
@@ -662,11 +663,12 @@ def lattice_hf(
             i.e. `lattice_hf(hamiltonian=hamiltonian)`"
     )
 
-  args = processes_args(settings)
-
   if settings is None:
-    infile_dict = read_input_params(args.inputfile)
-    settings = infile_dict["misc_params"]
+    infile_dict = read_input_params(inputfile)
+    settings = infile_dict["autohf"] | infile_dict["misc_params"]
+    settings["inputfile"] = inputfile
+
+  args = processes_args(settings)
 
   eta = float(args.eta)
   numOptSteps = int(args.numSteps)
@@ -704,7 +706,7 @@ def lattice_hf(
   else:
     spin_symm = SlaterType.COLLINEAR
 
-  if args.random_initial_guess and initial_guess is None:
+  if args.random_initial_phi0 and initial_guess is None:
     print("Using a random initial guess")
     phi0 = construct_random_Phi(
       rng, N, nelec, spin_symm=spin_symm, delta=getattr(args, "delta", 0.001)
@@ -872,20 +874,6 @@ def lattice_hf(
           rdms = makeRDMs(state[bestState])
           nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
 
-        if args.measure_spin:
-          rdms = makeRDMs(state[bestState])
-          print(
-            "<Sz>",
-            spin_z(rdm=list(rdms), spin_symm="noncollinear" if args.noncollinear else "collinear"),
-            end=" ",
-          )
-          print(
-            "<S^2>",
-            spin_squared(
-              rdm=list(rdms), spin_symm="noncollinear" if args.noncollinear else "collinear"
-            ),
-          )
-
         # update params
         # TODO, clean up vmap
         updates, opt_state = jax.vmap(optimizer.update)(derivs, opt_state, state)
@@ -942,19 +930,6 @@ def lattice_hf(
         nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
         Es = [energy(state)]
 
-      if args.measure_spin:
-        rdms = makeRDMs(state)
-        print(
-          "<Sz>",
-          spin_z(rdm=list([rdms]), spin_symm="noncollinear" if args.noncollinear else "collinear"),
-          end=" ",
-        )
-        print(
-          "<S^2>",
-          spin_squared(
-            rdm=list([rdms]), spin_symm="noncollinear" if args.noncollinear else "collinear"
-          ),
-        )
     elif args.opt_method == "basin":
       from scipy.optimize import basinhopping
 
@@ -1005,21 +980,6 @@ def lattice_hf(
         rdms = makeRDMs(state)
         nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
         Es = [energy(state)]
-
-      if args.measure_spin:
-        rdms = makeRDMs(state)
-        print(
-          "<Sz>",
-          spin_z(rdm=list(rdms), spin_symm="noncollinear" if args.noncollinear else "collinear"),
-          end=" ",
-        )
-        print(
-          "<S^2>",
-          spin_squared(
-            rdm=list(rdms), spin_symm="noncollinear" if args.noncollinear else "collinear"
-          ),
-        )
-
     else:
       msg = f"{args.opt_method} is not implemented! try grad, lbfgs, or basin"
       raise NotImplementedError(msg)
@@ -1054,6 +1014,19 @@ def lattice_hf(
         stacklevel=1,
       )
 
+  if args.measure_spin:
+    rdms = makeRDMs(state)
+    print(
+      "<Sz>",
+      spin_z(rdm=list([rdms]), spin_symm="noncollinear" if args.noncollinear else "collinear"),
+      end=" ",
+    )
+    print(
+      "<S^2>",
+      spin_squared(
+        rdm=list([rdms]), spin_symm="noncollinear" if args.noncollinear else "collinear"
+      ),
+    )
   # TODO: add more return data
   # This API is not 100% fixed, but seems useful
   data = {

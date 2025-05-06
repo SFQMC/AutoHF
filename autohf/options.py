@@ -64,7 +64,6 @@ def processes_args(args_dict: dict = None) -> SimpleNamespace:
 
   """
   _args = dict(
-    inputfile="input.toml",
     noncollinear=False,
     gpu=False,
     approx_expm=False,
@@ -81,14 +80,15 @@ def processes_args(args_dict: dict = None) -> SimpleNamespace:
     output=None,
     dumpTrials=False,
     measure_spin=False,
-    random_initial_guess=False,
-    delta=0.001,
+    random_initial_phi0=False,
   )
 
   if args_dict is not None:
     for key in _args.keys():
       if key in args_dict:
         _args[key] = args_dict[key]
+    if "inputfile" in args_dict:
+      _args["inputfile"] = args_dict["inputfile"]
 
   print("\n ===== AutoHF Settings ===== \n")
   for key, value in _args.items():
