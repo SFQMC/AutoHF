@@ -604,6 +604,10 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
 
     rdmFunc_E = rdmFunc
 
+  custom_energy_term = kwargs.get("custom_energy_term", None)
+  if custom_energy_term is not None:
+    print("Using passed custom energy term")
+
   def energyCall(state):
     # TODO spit into orbitals then rdm
     rdms = rdmFunc_E(state)
@@ -630,7 +634,11 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
         EJ=EJ,
         Eheis=Eheis,
       )
-    return jnp.real(EK + EU + EU1 + EU2 + EJ + Eheis) + shift(state)
+    if custom_energy_term is not None:
+      E_extra = custom_energy_term(state, rdms)
+    else:
+      E_extra = 0.0
+    return jnp.real(EK + EU + EU1 + EU2 + EJ + Eheis + E_extra) + shift(state)
 
   return jax.jit(energyCall), jax.jit(rdmFunc), orbFunc
 
@@ -641,6 +649,7 @@ def lattice_hf(
   initial_guess=None,
   start_from=None,
   inputfile=None,
+  custom_energy_term=None,
   **kwargs,
 ):
   """
@@ -737,6 +746,7 @@ def lattice_hf(
     noncollinear=args.noncollinear,
     Ne=nelec,
     riemannian=args.riemannian,
+    custom_energy_term=custom_energy_term,
     **kwargs,
   )
   loss = jax.jit(jax.value_and_grad(energy))
@@ -813,6 +823,7 @@ def lattice_hf(
 
   if numOptSteps < 0:  # skip optimization
     state = state0_ref  # how to build phi0 in the ansatz
+    E_final = E_ref
 
     if args.measure_spin:
       rdms = makeRDMs(state)
