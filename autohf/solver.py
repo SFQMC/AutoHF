@@ -17,7 +17,7 @@ import warnings
 import scipy.sparse as sps  # TODO: Remove
 
 # TODO: make optional
-from autohf.interfaces.afqmctools import fail_without_afqmctools, write_wfn, spin_squared, spin_z
+from autohf.interfaces.afqmctools import fail_without_afqmctools, spin_squared, spin_z
 
 
 from .io import read_input_params
