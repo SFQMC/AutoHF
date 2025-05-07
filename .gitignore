@@ -191,4 +191,4 @@ tags
 [._]*.un~
 
 # example pickle files
-examples/**/*.pkl
+*.pkl

@@ -46,7 +46,7 @@ from .terms.ghf import (
 )
 
 
-def saveStates(states, orbFunc, energies, phi0, args, fname, dumpTrials):
+def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dumpTrials):
   """Save all the trial states in an extra file
   Will automatically save based on npy/pkl/pickle file extension
   Does nothing if fname is empty/None
@@ -66,10 +66,11 @@ def saveStates(states, orbFunc, energies, phi0, args, fname, dumpTrials):
     "args": args,
     "phi0": phi0,
     "states": np.array(states),
+    "nelec": nelec,
   }
   if dumpTrials:
     orbs = [np.array(o) for o in jax.vmap(orbFunc)(states)]
-    data["orbitals"] = orbs
+    data["all_orbitals"] = orbs
 
   if fname[-4:] == ".npy":
     print("Saving states as npy:", fname)
@@ -85,6 +86,59 @@ def saveStates(states, orbFunc, energies, phi0, args, fname, dumpTrials):
     print("Saving Pickle:", fname + ".pkl")
     with open(fname + ".pkl", "wb") as f:
       pickle.dump(data, f)
+
+
+def loadStates(fname, args, nelec):
+  """
+  Loads saved pkl from saveStates
+  Supports using the same ansatz or any ansatz -> SD/SDC
+  """
+  import pickle
+  # TODO: support SD/SDC ->SD_ROT
+
+  print(f"Loading saved data from {fname}")
+  if fname[-4:] != ".pkl" and fname[-7:] != ".pickle":
+    print("Assuming pkl/pickle format, other formats currently unsupported")
+
+  with open(fname, "rb") as f:
+    original_data = pickle.load(f)
+
+  Es = original_data["Es"]
+  order = np.argsort(Es)
+  phi0 = original_data["phi0"]
+
+  if original_data["args"].numTrials < args.numTrials:
+    raise NotImplementedError(
+      f"Old data had {original_data['args'].numTrials} trials "
+      f"but requesting more on restart {args.numTrials}. This is currently unsupported"
+    )
+
+  if args.ansatz == original_data["args"].ansatz:
+    # easy case
+    state0_ref = original_data["state"]
+    state0 = original_data["states"][order[: args.numTrials]]
+
+  elif args.ansatz == "SD" or args.ansatz == "SDC":
+    state0_ref = jnp.array(original_data["orbitals"])
+    if "all_orbitals" not in original_data:
+      raise RuntimeError(
+        "All orbitals were not saved (i.e. dumpTrials was not set to True). "
+        "Please rerun original calculation or keep the same trial"
+      )
+    # orbitals leading dim is (nspin,nwalkers,...)
+    # so need a reshape
+    original_nelec = original_data["nelec"]
+    if original_nelec[0] != original_nelec[1]:
+      raise NotImplementedError("Polarized calculation not implemented (please raise issue)")
+
+    state0 = jnp.stack([o[order[: args.numTrials]] for o in original_data["all_orbitals"]])
+    state0 = jnp.swapaxes(state0, 0, 1)
+    # if originally not SDC and now is SDC
+    if original_data["args"].ansatz != "SDC" and args.ansatz == "SDC":
+      state0 = jnp.stack([state0.real, state0.imag])
+  print("Loaded state with energy:", original_data["E"])
+
+  return state0, state0_ref, phi0
 
 
 def construct_random_Phi(rng, N, Nes, spin_symm=SlaterType.COLLINEAR, delta=0.00001, Phi=None):
@@ -687,9 +741,6 @@ def lattice_hf(
     print("adding flags")
     os.environ["CUDA_VISIBLE_DEVICES"] = ""  # just in case
 
-  if start_from is not None:
-    print("start_from is not implemented yet, ignoring!")
-
   print(jax.local_devices())
   print("default dtype:", jnp.zeros(1).dtype)
 
@@ -716,7 +767,9 @@ def lattice_hf(
   else:
     spin_symm = SlaterType.COLLINEAR
 
-  if args.random_initial_phi0 and initial_guess is None:
+  if start_from is not None:
+    state0, state0_ref, phi0 = loadStates(start_from, args, nelec)
+  elif args.random_initial_phi0 and initial_guess is None:
     print("Using a random initial guess")
     phi0 = construct_random_Phi(
       rng, N, nelec, spin_symm=spin_symm, delta=getattr(args, "delta", 0.001)
@@ -753,7 +806,9 @@ def lattice_hf(
   loss_v = jax.jit(jax.vmap(loss))
   #### END MAGIC ZONE ###########
 
-  if rep_type == RepOptions.SLATERDET_ROT:
+  if start_from is not None:
+    pass  # taken care of above
+  elif rep_type == RepOptions.SLATERDET_ROT:
     print("Running in Rotation Mode")
     if force_complex:
       raise NotImplementedError("complex rotation not implemented yet")
@@ -908,7 +963,7 @@ def lattice_hf(
       if args.plot:
         plt.show()
 
-      saveStates(state, state2Orbitals, allE, phi0, args, args.output, args.dumpTrials)
+      saveStates(state, state2Orbitals, allE, phi0, args, nelec, args.output, args.dumpTrials)
       state = state[bestState]
     elif args.opt_method == "lbfgs":
       # TODO: have this be the first run of a more useful function
@@ -934,7 +989,7 @@ def lattice_hf(
         )
 
       saveStates(
-        res.params, state2Orbitals, res.state.value, phi0, args, args.output, args.dumpTrials
+        res.params, state2Orbitals, res.state.value, phi0, args, nelec, args.output, args.dumpTrials
       )
       if args.plot:
         rdms = makeRDMs(state)
@@ -986,7 +1041,7 @@ def lattice_hf(
       )
       print(ret.message, flush=True)
       state = ret.x.reshape(state0.shape)
-      saveStates(state, state2Orbitals, ret.fun, phi0, args, args.output, args.dumpTrials)
+      saveStates(state, state2Orbitals, ret.fun, phi0, args, nelec, args.output, args.dumpTrials)
       if args.plot:
         rdms = makeRDMs(state)
         nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
