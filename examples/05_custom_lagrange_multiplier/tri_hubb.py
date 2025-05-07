@@ -66,6 +66,7 @@ hf_settings = {
 
 
 # Build a lagrange multiplier for total Sz
+# We'll use this so that our energy is E+lambda*|\sum_i Sz_i|^2+100
 # Importante note: as an example, let's shift the energy
 # so we understand when its the special loss vs real energy
 lam = 10.0
@@ -75,6 +76,22 @@ def Esz2(state, rdms):
   r_uu, r_dd = rdms[0], rdms[1]
   return lam * jnp.abs(jnp.sum(r_uu.diagonal() - r_dd.diagonal())) ** 2 + 100
 
+
+##
+## We'll do the following steps:
+## 1. run a calculation with no steps to get an energy function
+##    because our energy function will really be a loss,
+##    polluted with the lagrange multiplier
+##
+## 2. For illustration, we'll run without the multiplier,
+##    to see how the the GHF state can rotate arbitrarily
+##    You may naturally do this step in order to realize
+##    the state needs constraining more explicitly
+##
+## 3. We run AutoHf with the custom energy term
+##
+## 4. Compare 2 and 3
+##
 
 #### Setup calculation
 N = Nx * Ny
@@ -86,6 +103,7 @@ settings = {"L": (Nx, Ny)}
 H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
 H.add_terms(T=T, U=U)
 
+####### Step 1 ######
 # First get energy function
 temp_settings = hf_settings | {"numSteps": -1}
 data, data_functions = autohf.solver.lattice_hf(
@@ -94,7 +112,8 @@ data, data_functions = autohf.solver.lattice_hf(
 )
 energy_func = data_functions["energy_func"]
 
-# Now proper calculation
+####### Step 2 ######
+# run with default settings, no extra term
 data, data_functions = autohf.solver.lattice_hf(
   H,
   settings=hf_settings,
@@ -103,6 +122,9 @@ data, data_functions = autohf.solver.lattice_hf(
 final_rdm = data_functions["makeRDMs"](data["state"])
 r_uu, r_dd = final_rdm[:N, :N], final_rdm[N:, N:]
 
+####### Step 3 ######
+# run with addition term
+# for illustration, energy is shifted by 100
 data_sz, data_functions_sz = autohf.solver.lattice_hf(
   H,
   settings=hf_settings,
@@ -112,6 +134,7 @@ data_sz, data_functions_sz = autohf.solver.lattice_hf(
 final_rdm_sz = data_functions_sz["makeRDMs"](data_sz["state"])
 r_uu_sz, r_dd_sz = final_rdm_sz[:N, :N], final_rdm_sz[N:, N:]
 
+####### Step 4 ######
 print("True energy:        ", energy_func(data["state"]))
 print("True energy w/ term:", energy_func(data_sz["state"]))
 print("Final sz:        ", np.sum(r_uu.diagonal() - r_dd.diagonal()))
