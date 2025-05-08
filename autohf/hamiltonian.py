@@ -38,8 +38,7 @@ class AutoHFHamiltonian:
     self._one_body = None
 
     if isinstance(source, Hamiltonian):
-      L = settings["L"]  # TODO: make this nicer?
-      self._init_from_afqmctools(source, L)
+      self._init_from_afqmctools(source)
     elif isinstance(source, AutoHFHamiltonian):
       raise NotImplementedError
     elif source is None:
@@ -64,11 +63,10 @@ class AutoHFHamiltonian:
       self._add_heisenberg(kwargs["Jheisenberg"])
     self._add_heisenberg(kwargs.get("Jheis", None))
 
-  def _init_from_afqmctools(self, hamiltonian, L):
+  def _init_from_afqmctools(self, hamiltonian):
     self.Nbands = hamiltonian.nbands
-    self.N = hamiltonian.nsites * self.Nbands
     self.nsites = hamiltonian.nsites
-    self.Nx, self.Ny = L
+    self.N = hamiltonian.nsites * self.Nbands
     # self.spin_symm = hamiltonian.spin_symm
 
     T = _get_T(hamiltonian)
