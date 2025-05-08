@@ -46,7 +46,7 @@ class SlaterType(enum.Enum):
   GHF = NONCOLLINEAR = enum.auto()
 
 
-def processes_args(args_dict: dict = None) -> SimpleNamespace:
+def process_args(args_dict: dict = None, display: bool = True) -> SimpleNamespace:
   """
   Processes autoHF arguments into a single namespace using
      default values if not specified. Accepts arguments from either
@@ -91,8 +91,9 @@ def processes_args(args_dict: dict = None) -> SimpleNamespace:
     if "inputfile" in args_dict:
       _args["inputfile"] = args_dict["inputfile"]
 
-  print("\n ===== AutoHF Settings ===== \n")
-  for key, value in _args.items():
-    print(" " * 8 + f"{key:30s} {str(value):>30s}")
+  if display:
+    print("\n ===== AutoHF Settings ===== \n")
+    for key, value in _args.items():
+      print(" " * 8 + f"{key:30s} {str(value):>30s}")
 
   return SimpleNamespace(**_args)

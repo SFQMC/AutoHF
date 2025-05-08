@@ -39,6 +39,7 @@ class AutoHFHamiltonian:
 
     if isinstance(source, Hamiltonian):
       self._init_from_afqmctools(source)
+      self.Nx, self.Ny = None, None
     elif isinstance(source, AutoHFHamiltonian):
       raise NotImplementedError
     elif source is None:
@@ -74,8 +75,8 @@ class AutoHFHamiltonian:
     U, U1, U2 = _get_U(hamiltonian)
     self._add_U(U, U1, U2)
     J = _get_J(hamiltonian)
-    self._add_J(hamiltonian)
-    J = _get_heisenberg(hamiltonian)
+    self._add_J(J)
+    J = _get_heisenberg(J)
     self._add_heisenberg(J)
 
   def _add_T(self, T):

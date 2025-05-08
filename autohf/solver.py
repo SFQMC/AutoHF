@@ -22,7 +22,7 @@ from autohf.interfaces.afqmctools import fail_without_afqmctools, spin_squared, 
 
 from .io import read_input_params
 from .tools import sdToRDM, sdToRDM_noncollinear
-from .options import SlaterType, RepOptions, get_ansatz, processes_args
+from .options import SlaterType, RepOptions, get_ansatz, process_args
 from .rotation_tools import (
   jexpm,
   get_nonz,
@@ -678,8 +678,8 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
 
     if debug_mode:
       jax.debug.print(
-        "energyCall: Etotal={Etotal} with EK={EK} EU={EU} EU1={EU1} \
-                 EU2={EU2} EJ={EJ} Eheisenber={Eheis}",
+        "energyCall: Etotal={Etotal} with EK={EK} EU={EU} EU1={EU1}"
+        " EU2={EU2} EJ={EJ} Eheisenber={Eheis}",
         Etotal=EK + EU + EU1 + EU2 + EJ,
         EK=EK,
         EU=EU,
@@ -704,6 +704,7 @@ def lattice_hf(
   start_from=None,
   inputfile=None,
   custom_energy_term=None,
+  suppress_logo=False,
   **kwargs,
 ):
   """
@@ -717,7 +718,8 @@ def lattice_hf(
     - ╜ ╙ ╚╝ ╜ ╚╝ ╜ ╙╨ ----
     -----------------------
     """
-  print(banner)
+  if not suppress_logo:
+    print(banner)
 
   if hamiltonian is None:
     raise ValueError(
@@ -731,7 +733,7 @@ def lattice_hf(
     settings = infile_dict["autohf"] | infile_dict["misc_params"]
     settings["inputfile"] = inputfile
 
-  args = processes_args(settings)
+  args = process_args(settings, not suppress_logo)
 
   eta = float(args.eta)
   numOptSteps = int(args.numSteps)
@@ -880,19 +882,6 @@ def lattice_hf(
     state = state0_ref  # how to build phi0 in the ansatz
     E_final = E_ref
 
-    if args.measure_spin:
-      rdms = makeRDMs(state)
-      print(
-        "<Sz>",
-        spin_z(rdm=list([rdms]), spin_symm="noncollinear" if args.noncollinear else "collinear"),
-        end=" ",
-      )
-      print(
-        "<S^2>",
-        spin_squared(
-          rdm=list([rdms]), spin_symm="noncollinear" if args.noncollinear else "collinear"
-        ),
-      )
   else:
     if args.opt_method == "grad":
       # Optimizer setup
@@ -1082,16 +1071,20 @@ def lattice_hf(
 
   if args.measure_spin:
     rdms = makeRDMs(state)
+    if args.noncollinear:
+      spin_symm = "noncollinear"
+      rdm_list = [rdms]
+    else:
+      spin_symm = "collinear"
+      rdm_list = rdms
     print(
       "<Sz>",
-      spin_z(rdm=list([rdms]), spin_symm="noncollinear" if args.noncollinear else "collinear"),
+      spin_z(rdm=rdm_list, spin_symm=spin_symm),
       end=" ",
     )
     print(
       "<S^2>",
-      spin_squared(
-        rdm=list([rdms]), spin_symm="noncollinear" if args.noncollinear else "collinear"
-      ),
+      spin_squared(rdm=rdm_list, spin_symm=spin_symm),
     )
   # TODO: add more return data
   # This API is not 100% fixed, but seems useful
