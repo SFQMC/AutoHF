@@ -76,7 +76,7 @@ class AutoHFHamiltonian:
     self._add_U(U, U1, U2)
     J = _get_J(hamiltonian)
     self._add_J(J)
-    J = _get_heisenberg(J)
+    J = _get_heisenberg(hamiltonian)
     self._add_heisenberg(J)
 
   def _add_T(self, T):
