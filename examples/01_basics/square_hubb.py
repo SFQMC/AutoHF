@@ -58,7 +58,7 @@ settings = {"L": (Nx, Ny)}  # change to shape?
 H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
 H.add_terms(T=T, U=U)
 
-autohf.solver.lattice_hf(
+autohf.lattice_hf(
   H,
   settings=hf_settings,
 )

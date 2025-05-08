@@ -56,7 +56,7 @@ hf_settings = {
   "nelec": (7, 7),  # should this be moved?
   # "dumpTrials"
 }
-autohf.solver.lattice_hf(
+autohf.lattice_hf(
   H,
   settings=hf_settings,
 )

@@ -106,7 +106,7 @@ H.add_terms(T=T, U=U)
 ####### Step 1 ######
 # First get energy function
 temp_settings = hf_settings | {"numSteps": -1}
-data, data_functions = autohf.solver.lattice_hf(
+data, data_functions = autohf.lattice_hf(
   H,
   settings=temp_settings,
 )
@@ -114,7 +114,7 @@ energy_func = data_functions["energy_func"]
 
 ####### Step 2 ######
 # run with default settings, no extra term
-data, data_functions = autohf.solver.lattice_hf(
+data, data_functions = autohf.lattice_hf(
   H,
   settings=hf_settings,
 )
@@ -125,7 +125,7 @@ r_uu, r_dd = final_rdm[:N, :N], final_rdm[N:, N:]
 ####### Step 3 ######
 # run with addition term
 # for illustration, energy is shifted by 100
-data_sz, data_functions_sz = autohf.solver.lattice_hf(
+data_sz, data_functions_sz = autohf.lattice_hf(
   H,
   settings=hf_settings,
   custom_energy_term=Esz2,

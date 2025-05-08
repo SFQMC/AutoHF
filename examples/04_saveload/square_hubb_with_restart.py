@@ -34,10 +34,10 @@ def makeT(Nx, Ny, xperiodic=True, yperiodic=True):
 
 #### Define Parameters
 Nx, Ny = 4, 4
-U = 2.5
+U = 8.5
 Ne = 7
 numSteps = 100
-numTrials = 4
+numTrials = 32
 output_base = "autohf_output"
 hf_settings = {
   "verbose": False,
@@ -61,7 +61,7 @@ settings = {"L": (Nx, Ny)}  # change to shape?
 H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
 H.add_terms(T=T, U=U)
 
-autohf.solver.lattice_hf(
+autohf.lattice_hf(
   H,
   settings=hf_settings,
 )
@@ -80,7 +80,7 @@ hf_settings = {
   "output": output_base + "_1.pkl",
   "seed": 1234,
 }
-autohf.solver.lattice_hf(
+autohf.lattice_hf(
   H,
   settings=hf_settings,
   start_from=output_base + "_0.pkl",
