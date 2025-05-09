@@ -881,11 +881,12 @@ def lattice_hf(
   print(f"Reference HF Energy = {E_ref}")
 
   if numOptSteps < 0:  # skip optimization
-    state = np.stack([state0_ref])  # how to build phi0 in the ansatz
+    states = np.stack([state0_ref])  # how to build phi0 in the ansatz
+    state = state0_ref
     E_final = E_ref
     Es = [E_final]
     output_data = saveStates(
-      state, state2Orbitals, np.array(Es), phi0, args, nelec, args.output, args.dumpTrials
+      states, state2Orbitals, np.array(Es), phi0, args, nelec, args.output, args.dumpTrials
     )
 
   else:
