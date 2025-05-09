@@ -28,7 +28,7 @@ from .rotation_tools import (
   get_nonz,
   get_nonz_herm,
 )
-from .converters import convertInitialSlaterDet, autoHF_2_afqmc_wfn
+from .converters import convertInitialSlaterDet
 from .hamiltonian import AutoHFHamiltonian
 from .terms.uhf import (
   uhf_U,

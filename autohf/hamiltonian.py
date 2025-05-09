@@ -13,7 +13,7 @@ if importlib.util.find_spec("afqmctools") is not None:
   HAS_AFQMCTOOLS = True
   from afqmctools.hamiltonian.model.ham_class import SpinSymm, Hamiltonian
 
-  from .converters import _get_T, _get_U, _get_J, _get_heisenberg
+  from .interfaces.afqmctools import _get_T, _get_U, _get_J, _get_heisenberg
 else:
   HAS_AFQMCTOOLS = False
 
