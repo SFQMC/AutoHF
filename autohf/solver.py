@@ -53,8 +53,6 @@ def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dumpTrials):
   """
   import pickle
 
-  if fname == "" or fname is None:
-    return
   Es = np.array(energies)
   best = np.argmin(Es)
   o = orbFunc(states[best])
@@ -72,6 +70,8 @@ def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dumpTrials):
     orbs = [np.array(o) for o in jax.vmap(orbFunc)(states)]
     data["all_orbitals"] = orbs
 
+  if fname == "" or fname is None:
+    return data
   if fname[-4:] == ".npy":
     print("Saving states as npy:", fname)
     np.save(fname, [np.array(o) for o in orbs])
@@ -86,6 +86,8 @@ def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dumpTrials):
     print("Saving Pickle:", fname + ".pkl")
     with open(fname + ".pkl", "wb") as f:
       pickle.dump(data, f)
+
+  return data
 
 
 def loadStates(fname, args, nelec):
@@ -879,8 +881,12 @@ def lattice_hf(
   print(f"Reference HF Energy = {E_ref}")
 
   if numOptSteps < 0:  # skip optimization
-    state = state0_ref  # how to build phi0 in the ansatz
+    state = np.stack([state0_ref])  # how to build phi0 in the ansatz
     E_final = E_ref
+    Es = [E_final]
+    output_data = saveStates(
+      state, state2Orbitals, np.array(Es), phi0, args, nelec, args.output, args.dumpTrials
+    )
 
   else:
     if args.opt_method == "grad":
@@ -952,7 +958,9 @@ def lattice_hf(
       if args.plot:
         plt.show()
 
-      saveStates(state, state2Orbitals, allE, phi0, args, nelec, args.output, args.dumpTrials)
+      output_data = saveStates(
+        state, state2Orbitals, allE, phi0, args, nelec, args.output, args.dumpTrials
+      )
       state = state[bestState]
     elif args.opt_method == "lbfgs":
       # TODO: have this be the first run of a more useful function
@@ -977,7 +985,7 @@ def lattice_hf(
           stacklevel=2,
         )
 
-      saveStates(
+      output_data = saveStates(
         res.params, state2Orbitals, res.state.value, phi0, args, nelec, args.output, args.dumpTrials
       )
       if args.plot:
@@ -1030,7 +1038,9 @@ def lattice_hf(
       )
       print(ret.message, flush=True)
       state = ret.x.reshape(state0.shape)
-      saveStates(state, state2Orbitals, ret.fun, phi0, args, nelec, args.output, args.dumpTrials)
+      output_data = saveStates(
+        state, state2Orbitals, ret.fun, phi0, args, nelec, args.output, args.dumpTrials
+      )
       if args.plot:
         rdms = makeRDMs(state)
         nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
@@ -1086,14 +1096,6 @@ def lattice_hf(
       "<S^2>",
       spin_squared(rdm=rdm_list, spin_symm=spin_symm),
     )
-  # TODO: add more return data
-  # This API is not 100% fixed, but seems useful
-  data = {
-    "E_final": np.array(E_final),
-    "orbitals": state2Orbitals(state),
-    "state": state,
-    "phi0": phi0,
-  }
 
   # data_functions can't be pickled, so split off but useful
   data_functions = {
@@ -1103,4 +1105,4 @@ def lattice_hf(
     "loss": loss,
     "loss_v": loss_v,
   }
-  return data, data_functions
+  return output_data, data_functions
