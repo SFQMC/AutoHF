@@ -40,11 +40,11 @@ h_pin = 0.5  # h_pin*Sz_i = h_pin/2*Z
 Nx, Ny = 4, 4
 N = Nx * Ny
 T_, pin = makeTPin(Nx, Ny, h_pin)
-T_up, T_dn = T_ + pin, T_ - pin
+T_up, T_dn = T_ + np.diag(pin), T_ - np.diag(pin)
 
 settings = {"L": (Nx, Ny)}  # change to shape?
 H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=[T_up, T_dn], U=1.5)
+H.add_terms(T=(T_up, T_dn), U=1.5)
 
 hf_settings = {
   "verbose": False,
