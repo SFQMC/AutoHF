@@ -999,7 +999,7 @@ def lattice_hf(
 
       if numTrials != 1:
         warnings.warn(
-          "Basin hopping does not use repetitions, modify the settings instead!",
+          "Basin hopping does not use numTrials, modify the settings instead!",
           RuntimeWarning,
           stacklevel=2,
         )
@@ -1027,6 +1027,8 @@ def lattice_hf(
       def print_fun(x, f, accepted):
         print("at minimum %.4f accepted %d" % (f, int(accepted)))
 
+      extraops = dict(T=10, stepsize=0.1) | kwargs.get("basinargs", {})
+
       ret = basinhopping(
         lossSP,
         state0.flatten(),
@@ -1034,13 +1036,19 @@ def lattice_hf(
         niter=numOptSteps,
         callback=print_fun,
         seed=rng,
-        T=10,
-        stepsize=0.1,
+        **extraops,
       )
       print(ret.message, flush=True)
       state = ret.x.reshape(state0.shape)
       output_data = saveStates(
-        state, state2Orbitals, ret.fun, phi0, args, nelec, args.output, args.dumpTrials
+        np.stack([state]),
+        state2Orbitals,
+        np.array([ret.fun]),
+        phi0,
+        args,
+        nelec,
+        args.output,
+        args.dumpTrials,
       )
       if args.plot:
         rdms = makeRDMs(state)
