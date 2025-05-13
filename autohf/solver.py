@@ -785,6 +785,7 @@ def lattice_hf(
       N,
       nelec,
       spin_symm=spin_symm,
+      averageSpins=kwargs.get("averageSpins", False),
     )
     # TODO: consider if this is a good or a bad idea
     if phi0 is None:
