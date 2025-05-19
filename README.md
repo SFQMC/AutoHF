@@ -2,7 +2,7 @@
 
 AutoHF is an automatic-differention-based lattice model Hartree-Fock solver.
 
-In contrast to typical self-consistent-field Hartree-Fock implementations, AutoHF leverages JAX and gradient-descend algorithms to find the Hartree-Fock solution variationally. This approach is both more robust against saddle-points or local minima and allows flexible user-supplied generalizations beyond the standard Hartree-Fock ansatz.
+In contrast to typical self-consistent-field Hartree-Fock implementations, AutoHF leverages JAX and gradient-descend algorithms to find the Hartree-Fock solution variationally. This approach can be more robust against both saddle-points or local minima and allows flexible user-supplied generalizations beyond the standard Hartree-Fock ansatz.
 
 ## Install
 
