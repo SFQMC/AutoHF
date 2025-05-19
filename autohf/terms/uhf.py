@@ -74,7 +74,7 @@ def uhf_hartree(rdms, cholesky_operators):
 
 
 def uhf_fock(rdms, cholesky_operators):
-  G = np.stack(rdms)
+  G = jnp.stack(rdms)
   vG = jnp.einsum("nσik,σjk->nσij", cholesky_operators, G)
   GvG = jnp.einsum("σji,nσjk->nσik", G, vG)
   trGvGv = jnp.einsum("nσij,nσji->", GvG, cholesky_operators)
