@@ -48,15 +48,15 @@ hops = (np.array([ 0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2
 Nx, Ny = 6, 6
 U = 4
 Ne = 18
-numSteps = 2000
-numTrials = 4
+steps = 2000
+trials = 4
 
 hf_settings = {
   "verbose": False,
-  "numSteps": numSteps,
+  "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": numTrials,
+  "trials": trials,
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": True,
@@ -105,7 +105,7 @@ H.add_terms(T=T, U=U)
 
 ####### Step 1 ######
 # First get energy function
-temp_settings = hf_settings | {"numSteps": -1}
+temp_settings = hf_settings | {"steps": -1}
 data, data_functions = autohf.lattice_hf(
   H,
   settings=temp_settings,

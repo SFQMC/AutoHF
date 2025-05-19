@@ -48,10 +48,10 @@ H.add_terms(T=(T_up, T_dn), U=1.5)
 
 hf_settings = {
   "verbose": False,
-  "numSteps": 100,
+  "steps": 100,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": 4,
+  "trials": 4,
   "gpu": False,
   "nelec": (7, 7),  # should this be moved?
   # "dumpTrials"

@@ -4,7 +4,7 @@ import jax.numpy as jnp
 
 
 @jax.jit
-def sdToRDM(sds):
+def sd_to_rdm(sds):
   r"""takes (2,N,Ne) orbitals
   returns <\psi|c^dag c | \psi>/<\psi|\psi>
   """
@@ -21,14 +21,14 @@ def create_polarized_func(phi0, f):
   N, Nup = phi0[0].shape
   _, Ndn = phi0[1].shape
 
-  def rdmFunc(state):
+  def rdm_func(state):
     return f((state[0][0:N, 0:Nup], state[1][0:N, 0:Ndn]))
 
-  return rdmFunc
+  return rdm_func
 
 
 @jax.jit
-def sdToRDM_noncollinear(sds):
+def sd_to_rdm_noncollinear(sds):
   r"""takes (1,N,Ne_total) orbitals
   returns <\psi|c^dag c | \psi>/<\psi|\psi>
   """
@@ -38,7 +38,7 @@ def sdToRDM_noncollinear(sds):
   return rdm  # tuple for consistency with the collinear case!
 
 
-def uhfToGhf(x):
+def uhf_to_ghf(x):
   """Converts [o_up, o_dn] UHF like input to a
   [ o_up 0    ]
   [  0   o_dn ]

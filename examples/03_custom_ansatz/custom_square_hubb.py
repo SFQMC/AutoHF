@@ -44,7 +44,7 @@ settings = {"L": (Nx, Ny)}  # change to shape?
 H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
 H.add_terms(T=T, U=4)
 
-TGHF_ = autohf.tools.uhfToGhf([T, T])
+TGHF_ = autohf.tools.uhf_to_ghf([T, T])
 signs = (-1) ** (np.arange(N) // Nx + np.arange(N) % Nx)
 
 
@@ -59,15 +59,15 @@ def orbitalFunc(state):
 
 def rdmFunc(state):
   o = orbitalFunc(state)
-  return autohf.solver.sdToRDM_noncollinear(o)
+  return autohf.solver.sd_to_rdm_noncollinear(o)
 
 
 hf_settings = {
   "verbose": False,
-  "numSteps": 2000,
+  "steps": 2000,
   "opt_method": "lbfgs",
   "ansatz": "CUSTOM",
-  "numTrials": 16,
+  "trials": 16,
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": True,
@@ -75,7 +75,7 @@ hf_settings = {
 
 rng = np.random.default_rng(42)
 state0_ref = 0.0 * np.arange(N).reshape(N)
-state0 = state0_ref + rng.normal(scale=0.01, size=(hf_settings["numTrials"], N))
+state0 = state0_ref + rng.normal(scale=0.01, size=(hf_settings["trials"], N))
 
 autohf.lattice_hf(
   H,

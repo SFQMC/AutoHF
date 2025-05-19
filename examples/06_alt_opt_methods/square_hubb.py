@@ -36,15 +36,15 @@ def makeT(Nx, Ny, xperiodic=True, yperiodic=True):
 Nx, Ny = 4, 4
 U = 1.5
 Ne = 7
-numSteps = 100
-numTrials = 4
+steps = 100
+trials = 4
 
 hf_settings = {
   "verbose": False,
-  "numSteps": numSteps,
+  "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": numTrials,
+  "trials": trials,
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": False,

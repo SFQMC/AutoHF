@@ -63,6 +63,7 @@ def process_args(args_dict: dict = None, display: bool = True) -> SimpleNamespac
                   the value in `args_dict` takes precendence.
 
   """
+  _old_args = dict(numTrials="trials", numSteps="teps", dumpTrials="dump_trials")
   _args = dict(
     noncollinear=False,
     gpu=False,
@@ -73,18 +74,22 @@ def process_args(args_dict: dict = None, display: bool = True) -> SimpleNamespac
     riemannian=False,
     seed=round(time.time()),
     eta=0.1,
-    numSteps=100,
-    numTrials=1,
+    steps=100,
+    trials=1,
     plot=False,
     verbose=False,
     output=None,
-    dumpTrials=False,
+    dump_trials=False,
     measure_spin=False,
     random_initial_phi0=False,
     state0_scale=0.01,
   )
 
   if args_dict is not None:
+    for key in args_dict:
+      if key in _old_args:
+        print("Warning!")
+        _args[_old_args[key]] = args_dict[key]
     for key in _args.keys():
       if key in args_dict:
         _args[key] = args_dict[key]

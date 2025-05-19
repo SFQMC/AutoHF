@@ -12,10 +12,10 @@ type = "square"
 nelec = [7,7]
 
 [autohf]
-numSteps = 500
+steps = 500
 opt_method = "lbfgs"
 ansatz = "SD"
 riemannian = true
-numTrials = 8
+trials = 8
 gpu = false
 noncollinear=true
