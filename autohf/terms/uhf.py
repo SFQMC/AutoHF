@@ -56,3 +56,45 @@ def uhf_Jheis(rdms, ii, jj, ij, ji):
   return (
     rho_up[ii[0], ii[1]] @ rho_down[jj[0], jj[1]] + rho_up[ji[0], ji[1]] @ rho_down[ij[0], ij[1]]
   )
+
+
+def uhf_onebody(rdms, onebody_operator):
+  """Calculate the UHF expectation value of a onebody operator. The operator can be either spin × basis × basis or basis × basis shaped."""
+
+  if onebody_operator.ndim == 2:
+    return jnp.einsum("σij,ij->", jnp.stack(rdms), onebody_operator)
+
+  return jnp.sum(jnp.stack(rdms) * onebody_operator)
+
+
+def uhf_hartree(rdms, cholesky_operators):
+  v = jnp.einsum("σij,nσij->n", jnp.stack(rdms), cholesky_operators)
+
+  return -0.5 * jnp.sum(v**2)
+
+
+def uhf_fock(rdms, cholesky_operators):
+  G = np.stack(rdms)
+  vG = jnp.einsum("nσik,σjk->nσij", cholesky_operators, G)
+  GvG = jnp.einsum("σji,nσjk->nσik", G, vG)
+  trGvGv = jnp.einsum("nσij,nσji->", GvG, cholesky_operators)
+
+  return 0.5 * trGvGv
+
+
+def uhf_cholesky(rdms, cholesky_operators):
+  r"""
+  Calculate the UHF energy of a two-body term expressed by a sum of squares
+
+  .. math::
+
+    H = - \frac 12 \sum_{n=1}^M v_n^2
+
+  of `cholesky_operators`, which are specified as a M × spin × basis × basis array.
+  """
+
+  product_term = -0.5 * uhf_onebody(
+    rdms, jnp.einsum("nσij,nσjk->σik", cholesky_operators, cholesky_operators)
+  )
+
+  return uhf_hartree(rdms, cholesky_operators) + uhf_fock(rdms, cholesky_operators) + product_term
