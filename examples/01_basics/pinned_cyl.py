@@ -42,7 +42,7 @@ N = Nx * Ny
 T_, pin = makeTPin(Nx, Ny, h_pin)
 T_up, T_dn = T_ + np.diag(pin), T_ - np.diag(pin)
 
-settings = {"L": (Nx, Ny)}  # change to shape?
+settings = {"L": (Nx, Ny)}
 H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
 H.add_terms(T=(T_up, T_dn), U=1.5)
 
@@ -53,8 +53,7 @@ hf_settings = {
   "ansatz": "SD_ROT",
   "trials": 4,
   "gpu": False,
-  "nelec": (7, 7),  # should this be moved?
-  # "dumpTrials"
+  "nelec": (7, 7),
 }
 autohf.lattice_hf(
   H,

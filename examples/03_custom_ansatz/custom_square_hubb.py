@@ -40,7 +40,7 @@ N = Nx * Ny
 Ne = 8
 T = makeT(Nx, Ny)
 
-settings = {"L": (Nx, Ny)}  # change to shape?
+settings = {"L": (Nx, Ny)}
 H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
 H.add_terms(T=T, U=4)
 
