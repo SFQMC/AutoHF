@@ -21,7 +21,7 @@ from autohf.interfaces.afqmctools import fail_without_afqmctools, spin_squared, 
 
 
 from .io import read_input_params
-from .tools import sdToRDM, sdToRDM_noncollinear
+from .tools import sdToRDM, sdToRDM_noncollinear, create_polarized_func
 from .options import SlaterType, RepOptions, get_ansatz, process_args
 from .rotation_tools import (
   jexpm,
@@ -44,6 +44,12 @@ from .terms.ghf import (
   ghf_J,
   ghf_Jheis,
 )
+
+
+def _toarrayornot(arr):
+  if isinstance(arr, sps.sparray):
+    return arr.toarray()
+  return arr
 
 
 def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dumpTrials):
@@ -90,20 +96,29 @@ def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dumpTrials):
   return data
 
 
-def loadStates(fname, args, nelec):
+def loadStates(input_, args, nelec):
   """
   Loads saved pkl from saveStates
   Supports using the same ansatz or any ansatz -> SD/SDC
   """
-  import pickle
-  # TODO: support SD/SDC ->SD_ROT
 
-  print(f"Loading saved data from {fname}")
-  if fname[-4:] != ".pkl" and fname[-7:] != ".pickle":
-    print("Assuming pkl/pickle format, other formats currently unsupported")
+  if isinstance(input_, str):
+    import pickle
 
-  with open(fname, "rb") as f:
-    original_data = pickle.load(f)
+    # TODO: support SD/SDC ->SD_ROT
+    fname = input_
+    print(f"Loading saved data from {fname}")
+    if fname[-4:] != ".pkl" and fname[-7:] != ".pickle":
+      print("Assuming pkl/pickle format, other formats currently unsupported")
+
+    with open(fname, "rb") as f:
+      original_data = pickle.load(f)
+  elif isinstance(input_, tuple) or isinstance(input_, list):
+    original_data = input_[0]
+  elif isinstance(input_, dict):
+    original_data = input_
+  else:
+    raise RuntimeError(f"Unknown restart data ({type(input_)}")
 
   Es = original_data["Es"]
   order = np.argsort(Es)
@@ -187,6 +202,8 @@ def constructPhi0(Tlist, N, Nes, spin_symm=SlaterType.COLLINEAR, averageSpins=Fa
   if Tlist is None:
     return None
 
+  Tlist = [_toarrayornot(t) for t in Tlist]
+
   # NC T, NC walkers
   if Tlist[0].shape[0] != N:
     if spin_symm != SlaterType.NONCOLLINEAR:
@@ -202,8 +219,6 @@ def constructPhi0(Tlist, N, Nes, spin_symm=SlaterType.COLLINEAR, averageSpins=Fa
         stacklevel=2,
       )
     T = Tlist[0]
-    if isinstance(T, sps.sparray):
-      T = T.toarray()
     _, orbitals = np.linalg.eigh(T)
     return jnp.stack([orbitals[:, : sum(Nes)]])
 
@@ -217,11 +232,6 @@ def constructPhi0(Tlist, N, Nes, spin_symm=SlaterType.COLLINEAR, averageSpins=Fa
     Tup = Tdn = Tavg
   else:
     Tdn = Tlist[1]
-
-  # in case we have sparse arrays
-  if isinstance(Tup, sps.sparray):
-    Tup = Tup.toarray()
-    Tdn = Tdn.toarray()
 
   if spin_symm == SlaterType.COLLINEAR:
     _, orbitals_up = np.linalg.eigh(Tup)
@@ -335,13 +345,20 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     if spin_symm == SlaterType.GHF:
       rdmFunc = sdToRDM_noncollinear  # could make safe
     elif spin_symm == SlaterType.UHF:
-      rdmFunc = sdToRDM  # could make safe
+      nelec = kwargs["Ne"]
+      if nelec[0] == nelec[1]:
+        rdmFunc = sdToRDM  # could make safe
+      else:
+        rdmFunc = create_polarized_func(phi0, sdToRDM)
+        orbFunc = create_polarized_func(phi0, lambda x: x)
     else:
       raise NotImplementedError("Unkown rdmfunc for SLATERDET")
   elif rep_type == RepOptions.SLATERDETC:
 
     def orbFunc(state):
       return state[0] + state[1] * 1j
+
+    nelec = kwargs["Ne"]
 
     def rdmFunc(state):
       o = orbFunc(state)
@@ -351,6 +368,18 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
         return sdToRDM(o)
       else:
         raise NotImplementedError("Unkown rdmfunc for SLATERDET")
+
+    if spin_symm == SlaterType.UHF:
+      if nelec[0] != nelec[1]:
+        combine = create_polarized_func(phi0, lambda x: x)
+
+        def rdmFunc(state):
+          o = state[0] + state[1] * 1j
+          return sdToRDM(combine(o))
+
+        def orbFunc(state):
+          o = state[0] + state[1] * 1j
+          return combine(o)
   elif rep_type == RepOptions.SLATERDET_ROT:
     if "approx_expm" in kwargs:
       use_approx_expm = kwargs["approx_expm"]
@@ -448,21 +477,22 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
   elif rep_type == RepOptions.DIAG:
     Ne = kwargs["Ne"]
     Tlist_ = hamil.get_one_body()
+    Tlist_ = [_toarrayornot(t) for t in Tlist_]
     if spin_symm == SlaterType.GHF:
       if len(Tlist_) == 2:
-        Tup, Tdn = Tlist_[0].toarray(), Tlist_[1].toarray()
+        Tup, Tdn = Tlist_[0], Tlist_[1]
         T_ = np.block([[Tup, np.zeros_like(Tdn)], [np.zeros_like(Tup), Tdn]])
       else:
         # TODO account for potential RHF like Hamiltonian
-        T_ = Tlist_[0].toarray()
+        T_ = Tlist_[0]
     else:
       T_ = np.zeros((2, N, N))
-      T_[0, :] = Tlist_[0].toarray()
+      T_[0, :] = Tlist_[0]
 
       if len(Tlist_) == 1:
         T_[0, :] = T_[1, :]
       else:
-        T_[1, :] = Tlist_[1].toarray()
+        T_[1, :] = Tlist_[1]
     print("Hopping used:", T_)
 
     def makefunc(Ne, T_):
@@ -622,7 +652,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     # the only manifold implemented is a Stiefel manifold (SD/SDC)
     # check that we are SD only
     assert rep_type in [RepOptions.SLATERDET, RepOptions.SLATERDETC]
-    beta = 1e-8  # TODO: calc this
+    beta = kwargs.get("beta", 1e-8)  # TODO: calc this
     Ne = kwargs["Ne"]
     print(f"Using Riemannian CD mode, {beta=}")
 
@@ -632,16 +662,17 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
 
     def rdmFunc_E(state):
       orbs = orbFunc(state)
-      orbs = A(orbs)
       if spin_symm == SlaterType.GHF:
+        orbs = A(orbs)
         return sdToRDM_noncollinear(orbs)
       elif spin_symm == SlaterType.UHF:
+        orbs = (A(orbs[0]), A(orbs[1]))
         return sdToRDM(orbs)
 
     def shift(state):
       orbs = orbFunc(state)
-      Z = A(orbs)
       if spin_symm == SlaterType.GHF:
+        Z = A(orbs)
         return (
           beta
           / 4
@@ -649,6 +680,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
           ** 2
         )
       else:
+        Z = (A(orbs[0]), A(orbs[1]))
         n1 = jnp.linalg.norm((jnp.swapaxes(Z[0].conj(), -1, -2) @ Z[0]) - np.eye(Ne[0]), "fro") ** 2
         n2 = jnp.linalg.norm((jnp.swapaxes(Z[1].conj(), -1, -2) @ Z[1]) - np.eye(Ne[1]), "fro") ** 2
         return beta / 4 * (n1 + n2)
@@ -847,26 +879,38 @@ def lattice_hf(
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.SLATERDET:
     print("Running in Slater Determinant Mode")
-    # TODO: take care of padding ala afqmctools
-    if isinstance(phi0, tuple) or isinstance(phi0, list):
-      phi0 = np.stack(phi0)
-    state0 = phi0.copy()
-    state0_ref = state0.copy()
-    state0 = state0 + rng.normal(scale=state0_scale, size=(numTrials, *state0.shape))
+    maxdim = max([p.shape[-1] for p in phi0])
+    state0_ref = np.zeros((len(phi0), phi0[0].shape[0], maxdim))
+    state0 = np.zeros((numTrials, *state0_ref.shape))
+    shifts = rng.normal(scale=state0_scale, size=state0.shape)
     if force_complex:
       print("Forcing complex orbitals")
-      state0 += 1j * rng.normal(scale=state0_scale / 100, size=(numTrials, *state0.shape))
+      shiftsj = rng.normal(scale=state0_scale / 100, size=state0.shape)
+    for i, p in enumerate(phi0):
+      x, y = p.shape
+      state0[:, i, 0:x, 0:y] += shifts[:, i, 0:x, :y]
+      state0_ref[i, 0:x, 0:y] = p[:, :]
+      if force_complex:
+        state0[:, i, 0:x, 0:y] += shiftsj[:, i, 0:x, :y]
   elif rep_type == RepOptions.SLATERDETC:
     print("Running in Complex Slater Determinant Mode")
-    # TODO: take care of padding ala afqmctools
-    if isinstance(phi0, tuple) or isinstance(phi0, list):
-      phi0 = np.stack(phi0)
-    state0 = jnp.stack([phi0.real, phi0.imag])
-    state0_ref = state0.copy()
-    state0 = state0 + rng.normal(scale=state0_scale, size=(numTrials, *state0.shape))
+    maxdim = max([p.shape[-1] for p in phi0])
+    state0_ref = np.zeros((len(phi0), phi0[0].shape[0], maxdim))
+    state0 = np.zeros((numTrials, *state0_ref.shape))
+    shifts = rng.normal(scale=state0_scale, size=state0.shape)
     if force_complex:
       print("Forcing complex orbitals")
-      state0 += 1j * rng.normal(scale=state0_scale / 100, size=(numTrials, *state0.shape))
+      shiftsj = rng.normal(scale=state0_scale / 100, size=state0.shape)
+    for i, p in enumerate(phi0):
+      x, y = p.shape
+      state0[:, i, 0:x, 0:y] += shifts[:, i, 0:x, :y]
+      state0_ref[i, 0:x, 0:y] = p[:, :]
+      if force_complex:
+        state0[:, i, 0:x, 0:y] += shiftsj[:, i, 0:x, :y]
+    state0 = jnp.stack([state0.real, state0.imag])
+    state0_ref = jnp.stack([state0_ref.real, state0_ref.imag])
+    # stacking messed up ordering
+    state0 = jnp.swapaxes(state0, 0, 1)
   elif rep_type == RepOptions.DIAG:
     print("Running in Diagonalization Mode")
     if not args.noncollinear:
@@ -882,7 +926,7 @@ def lattice_hf(
   print(f"Reference HF Energy = {E_ref}")
 
   if numOptSteps < 0:  # skip optimization
-    states = np.stack([state0_ref])  # how to build phi0 in the ansatz
+    states = [state0_ref]  # how to build phi0 in the ansatz
     state = state0_ref
     E_final = E_ref
     Es = [E_final]

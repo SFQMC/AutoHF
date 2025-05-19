@@ -10,11 +10,21 @@ def sdToRDM(sds):
   """
   # (2,N,Ne)
   # because we could have different number of particles, let's not batch
-  # but TODO: make batched later
   phi_up, phi_dn = sds
   rdm_up = phi_up.conj() @ jnp.linalg.solve(phi_up.T @ phi_up.conj(), phi_up.T)
   rdm_dn = phi_dn.conj() @ jnp.linalg.solve(phi_dn.T @ phi_dn.conj(), phi_dn.T)
   return rdm_up, rdm_dn
+
+
+def create_polarized_func(phi0, f):
+  r"""takes collinear phi0 and constructs sliced input to function f"""
+  N, Nup = phi0[0].shape
+  _, Ndn = phi0[1].shape
+
+  def rdmFunc(state):
+    return f((state[0][0:N, 0:Nup], state[1][0:N, 0:Ndn]))
+
+  return rdmFunc
 
 
 @jax.jit
