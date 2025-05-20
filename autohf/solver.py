@@ -158,7 +158,7 @@ def loadStates(input_, args, nelec):
   return state0, state0_ref, phi0
 
 
-def construct_random_Phi(rng, N, Nes, spin_symm=SlaterType.COLLINEAR, delta=0.00001, Phi=None):
+def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.00001, Phi=None):
   """
   construct a random Slater determinant as
 
@@ -170,15 +170,15 @@ def construct_random_Phi(rng, N, Nes, spin_symm=SlaterType.COLLINEAR, delta=0.00
   Inputs:
   - rng: initialized numpy random number generator
   - N : number of basis set functions (number of sites * number of bands)
-  - Nes : number of electrons as an iterable of length 2 (Nup,Ndown)
+  - neelc : number of electrons as an iterable of length 2 (Nup,Ndown)
   - spin_symm : the desired spin symmetry of the Slater determinant
   """
   print("Making a randomized initial guess")
   if spin_symm == SlaterType.NONCOLLINEAR:
-    slater_shape = (2 * N, sum(Nes))
+    slater_shape = (2 * N, sum(nelec))
     shape = (2 * N, 2 * N)
   else:
-    slater_shape = (N, sum(Nes))
+    slater_shape = (N, sum(nelec))
     shape = (N, N)
 
   if Phi is None:
@@ -192,10 +192,10 @@ def construct_random_Phi(rng, N, Nes, spin_symm=SlaterType.COLLINEAR, delta=0.00
   if spin_symm == SlaterType.NONCOLLINEAR:
     return jnp.stack([Phi])
   elif spin_symm == SlaterType.COLLINEAR:
-    return (Phi[:, : Nes[0]], Phi[:, : Nes[1]])
+    return (Phi[:, : nelec[0]], Phi[:, : nelec[1]])
 
 
-def constructPhi0(Tlist, N, Nes, spin_symm=SlaterType.COLLINEAR, averageSpins=False):
+def constructPhi0(Tlist, N, nelec, spin_symm=SlaterType.COLLINEAR, averageSpins=False):
   # assume Tlist is a list of either [NC] or [up,dn]
   # if averageSpins, combine up and down
   # eventually replace that with hamiltonian symmetry system
@@ -220,7 +220,7 @@ def constructPhi0(Tlist, N, Nes, spin_symm=SlaterType.COLLINEAR, averageSpins=Fa
       )
     T = Tlist[0]
     _, orbitals = np.linalg.eigh(T)
-    return jnp.stack([orbitals[:, : sum(Nes)]])
+    return jnp.stack([orbitals[:, : sum(nelec)]])
 
   # collinear T version
   assert np.all([T.shape[0] == N for T in Tlist])
@@ -237,12 +237,12 @@ def constructPhi0(Tlist, N, Nes, spin_symm=SlaterType.COLLINEAR, averageSpins=Fa
     _, orbitals_up = np.linalg.eigh(Tup)
     _, orbitals_down = np.linalg.eigh(Tdn)
 
-    return (orbitals_up[:, : Nes[0]], orbitals_down[:, : Nes[1]])
+    return (orbitals_up[:, : nelec[0]], orbitals_down[:, : nelec[1]])
 
   elif spin_symm == SlaterType.NONCOLLINEAR:
     # collinear Hamiltonian, NC walkers
     _, orbitals = np.linalg.eigh(np.block([[Tup, np.zeros_like(Tdn)], [np.zeros_like(Tup), Tdn]]))
-    return jnp.stack([orbitals[:, : Nes[0] + Nes[1]]])
+    return jnp.stack([orbitals[:, : nelec[0] + nelec[1]]])
 
 
 ###########################################################################
@@ -345,7 +345,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     if spin_symm == SlaterType.GHF:
       rdmFunc = sd_to_rdm_noncollinear  # could make safe
     elif spin_symm == SlaterType.UHF:
-      nelec = kwargs["Ne"]
+      nelec = kwargs["nelec"]
       if nelec[0] == nelec[1]:
         rdmFunc = sd_to_rdm  # could make safe
       else:
@@ -358,7 +358,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     def orbFunc(state):
       return state[0] + state[1] * 1j
 
-    nelec = kwargs["Ne"]
+    nelec = kwargs["nelec"]
 
     def rdmFunc(state):
       o = orbFunc(state)
@@ -475,7 +475,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
         orbs = (R_up @ phi0_up, R_dn @ phi0_dn)
         return sd_to_rdm(orbs)
   elif rep_type == RepOptions.DIAG:
-    Ne = kwargs["Ne"]
+    nelec = kwargs["nelec"]
     Tlist_ = hamil.get_one_body()
     Tlist_ = [_toarrayornot(t) for t in Tlist_]
     if spin_symm == SlaterType.GHF:
@@ -495,17 +495,17 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
         T_[1, :] = Tlist_[1]
     print("Hopping used:", T_)
 
-    def makefunc(Ne, T_):
-      Ne2 = np.sum(Ne)
+    def makefunc(nelec, T_):
+      Ntot = np.sum(nelec)
 
       def orbFunc(state):
         Heff = T_ + (state + jnp.swapaxes(state, -1, -2).conj())  # symmetrized
         if spin_symm == SlaterType.GHF:
-          orbs = (jnp.linalg.eigh(Heff)[1][:, :Ne2],)
+          orbs = (jnp.linalg.eigh(Heff)[1][:, :Ntot],)
           return orbs
         else:
           all_orbs = jnp.linalg.eigh(Heff)[1]
-          orbs = [all_orbs[0, :, : Ne[0]], all_orbs[1, :, : Ne[1]]]
+          orbs = [all_orbs[0, :, : nelec[0]], all_orbs[1, :, : nelec[1]]]
           return orbs
 
       def rdmFunc(state):
@@ -518,7 +518,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
 
       return orbFunc, rdmFunc
 
-    orbFunc, rdmFunc = makefunc(Ne, T_)
+    orbFunc, rdmFunc = makefunc(nelec, T_)
   elif rep_type == RepOptions.CUSTOM:
     # a representation needs the following:
     # 1. orbFunc : state->orbitals
@@ -653,7 +653,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     # check that we are SD only
     assert rep_type in [RepOptions.SLATERDET, RepOptions.SLATERDETC]
     beta = kwargs.get("beta", 1e-8)  # TODO: calc this
-    Ne = kwargs["Ne"]
+    nelec = kwargs["nelec"]
     print(f"Using Riemannian CD mode, {beta=}")
 
     def A(X):
@@ -676,13 +676,17 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
         return (
           beta
           / 4
-          * jnp.linalg.norm((jnp.swapaxes(Z[0].conj(), -1, -2) @ Z[0]) - np.eye(sum(Ne)), "fro")
+          * jnp.linalg.norm((jnp.swapaxes(Z[0].conj(), -1, -2) @ Z[0]) - np.eye(sum(nelec)), "fro")
           ** 2
         )
       else:
         Z = (A(orbs[0]), A(orbs[1]))
-        n1 = jnp.linalg.norm((jnp.swapaxes(Z[0].conj(), -1, -2) @ Z[0]) - np.eye(Ne[0]), "fro") ** 2
-        n2 = jnp.linalg.norm((jnp.swapaxes(Z[1].conj(), -1, -2) @ Z[1]) - np.eye(Ne[1]), "fro") ** 2
+        n1 = (
+          jnp.linalg.norm((jnp.swapaxes(Z[0].conj(), -1, -2) @ Z[0]) - np.eye(nelec[0]), "fro") ** 2
+        )
+        n2 = (
+          jnp.linalg.norm((jnp.swapaxes(Z[1].conj(), -1, -2) @ Z[1]) - np.eye(nelec[1]), "fro") ** 2
+        )
         return beta / 4 * (n1 + n2)
 
   else:
@@ -834,7 +838,7 @@ def lattice_hf(
     debug_mode=args.verbose,
     ref_state=phi0,
     noncollinear=args.noncollinear,
-    Ne=nelec,
+    nelec=nelec,
     riemannian=args.riemannian,
     custom_energy_term=custom_energy_term,
     **kwargs,
