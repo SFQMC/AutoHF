@@ -944,15 +944,17 @@ def lattice_hf(
       # Optimizer setup
       _optax_settings = {"scale_by": optax.scale_by_belief}
 
-      optimizer = optax.chain(
-        # optax.clip_by_global_norm(1.0),  # Clip by the gradient by the global norm.
-        # optax.scale_by_adam(),
-        # optax.scale_by_belief(),
-        _optax_settings["scale_by"](),
-        # Scale updates by -1 since optax.apply_updates is additive
-        # and we want to descend on the loss.
-        optax.scale(-eta),
-      )
+      optimizer = kwargs.get("optimizer", None)
+      if optimizer is None:
+        optimizer = optax.chain(
+          # optax.clip_by_global_norm(1.0),  # Clip by the gradient by the global norm.
+          # optax.scale_by_adam(),
+          # optax.scale_by_belief(),
+          _optax_settings["scale_by"](),
+          # Scale updates by -1 since optax.apply_updates is additive
+          # and we want to descend on the loss.
+          optax.scale(-eta),
+        )
 
       state = state0.copy()
       opt_state = jax.vmap(optimizer.init)(state)
