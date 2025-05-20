@@ -56,7 +56,7 @@ class TestAutoHFHamiltonianShort:
     T = self.T
     U = self.U
     dummy_hamiltonian = AutoHFHamiltonian(T=(T, T), U=U)
-    for term, value, expected in [("T", T, self.T_auto_HF), ("U", U, self.U_auto_HF)]:
+    for term, _, expected in [("T", T, self.T_auto_HF), ("U", U, self.U_auto_HF)]:
       unique_vals, sites = dummy_hamiltonian.get(term)
       assert np.allclose(expected[0], unique_vals)
       assert np.allclose(expected[1], sites)
@@ -96,7 +96,7 @@ class TestAutoHFHamiltonianShort:
     term = "U"
     expected = self.U_auto_HF
 
-    H = AutoHFHamiltonian(N=len(self.U),T=(self.T,self.T),**{term: U})
+    H = AutoHFHamiltonian(N=len(self.U), T=(self.T, self.T), **{term: U})
 
     unique_vals, sites = H.get(term)
     assert np.allclose(expected[0], unique_vals)

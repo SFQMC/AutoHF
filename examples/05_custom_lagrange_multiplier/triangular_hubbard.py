@@ -107,7 +107,7 @@ temp_settings = hf_settings | {"steps": -1}
 data, data_functions = autohf.lattice_hf(
   H,
   settings=temp_settings,
-  suppress_logo=True,  # quiet mode
+  verbosity=0,  # quiet mode
 )
 energy_func = data_functions["energy_func"]
 

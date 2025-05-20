@@ -742,7 +742,7 @@ def lattice_hf(
   start_from=None,
   inputfile=None,
   custom_energy_term=None,
-  suppress_logo=False,
+  verbosity=1,  # 0: no logo, minimal, 1: usual, 2: extra
   **kwargs,
 ):
   """
@@ -756,7 +756,7 @@ def lattice_hf(
     - ╜ ╙ ╚╝ ╜ ╚╝ ╜ ╙╨ ----
     -----------------------
     """
-  if not suppress_logo:
+  if verbosity > 0:
     print(banner)
 
   if hamiltonian is None:
@@ -771,10 +771,10 @@ def lattice_hf(
     settings = infile_dict["autohf"] | infile_dict["misc_params"]
     settings["inputfile"] = inputfile
 
-  args = process_args(settings, not suppress_logo)
+  args = process_args(settings, verbosity > 0)
 
   eta = float(args.eta)
-  numOptSteps = int(args.steps)
+  steps = int(args.steps)
   state0_scale = float(args.state0_scale)
 
   if not args.gpu:
@@ -927,9 +927,10 @@ def lattice_hf(
     state0_ref = kwargs.get("state0_ref", state0 * 0.0)
 
   E_ref = energy(state0_ref)
-  print(f"Reference HF Energy = {E_ref}")
+  if verbosity > 0:
+    print(f"Reference HF Energy = {E_ref}")
 
-  if numOptSteps < 0:  # skip optimization
+  if steps < 0:  # skip optimization
     states = [state0_ref]  # how to build phi0 in the ansatz
     state = state0_ref
     E_final = E_ref
@@ -956,7 +957,7 @@ def lattice_hf(
       state = state0.copy()
       opt_state = jax.vmap(optimizer.init)(state)
       Es = []
-      bestState = 0
+      best_state = 0
       if args.plot:
         fig, ax = plt.subplots(1, 2, figsize=(12, 4))
         (line1,) = ax[0].plot(np.arange(len(Es)), Es, "o-")
@@ -964,7 +965,7 @@ def lattice_hf(
         ax[0].set_xlabel("Step")
         ax[0].set_ylabel("E")
 
-        rdms = makeRDMs(state[bestState])
+        rdms = makeRDMs(state[best_state])
         # TODO: make a function that returns nup,ndn
         # and accounts for collinear vs. noncollinear
         nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
@@ -972,17 +973,17 @@ def lattice_hf(
         line2, *_ = ax[1].plot(np.arange(Nx), (nup - ndn).reshape(Nx, Ny * Nbands) / 2)
         ax[1].set_xlabel("Step")
         ax[1].set_ylabel("<Sz>")
-      for _ in range(numOptSteps):
+      for _ in range(steps):
         # TODO: this fails on complex-valued t-matrix elements
         allE, derivs = loss_v(state)
-        bestState = np.argmin(allE)
+        best_state = np.argmin(allE)
 
-        Es.append(allE[bestState])
+        Es.append(allE[best_state])
         print(Es[-1], allE)  # TODO: print more info!!
         # find out density
         # TODO, loss should output
         if args.plot:
-          rdms = makeRDMs(state[bestState])
+          rdms = makeRDMs(state[best_state])
           nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
 
         # update params
@@ -1011,25 +1012,23 @@ def lattice_hf(
       output_data = saveStates(
         state, state2Orbitals, allE, phi0, args, nelec, args.output, args.dump_trials
       )
-      state = state[bestState]
+      state = state[best_state]
     elif args.opt_method == "lbfgs":
       # TODO: have this be the first run of a more useful function
       print(f"Initial Energy: {loss_v(state0)[0]}", flush=True)
       extraops = kwargs.get("jaxoptargs", {})
-      solver = jaxopt.LBFGS(fun=loss, value_and_grad=True, maxiter=numOptSteps, **extraops)
+      solver = jaxopt.LBFGS(fun=loss, value_and_grad=True, maxiter=steps, **extraops)
       run_v = jax.vmap(solver.run)
       res = run_v(state0)
 
-      bestState = np.argmin(res.state.value)
-      state = res.params[bestState]
-      print(
-        "# iterations:", res.state.iter_num, "frac of possible:", res.state.iter_num / numOptSteps
-      )
-      print("Final energy:", res.state.value[bestState], res.state.value, flush=True)
+      best_state = np.argmin(res.state.value)
+      state = res.params[best_state]
+      print("# iterations:", res.state.iter_num, "frac of possible:", res.state.iter_num / steps)
+      print("Final energy:", res.state.value[best_state], res.state.value, flush=True)
 
-      if res.state.iter_num[bestState] == numOptSteps:
+      if res.state.iter_num[best_state] == steps:
         warnings.warn(
-          f"The best variational state did not converge in {numOptSteps} steps. "
+          f"The best variational state did not converge in {steps} steps. "
           "Inspect result carefully!",
           RuntimeWarning,
           stacklevel=2,
@@ -1089,7 +1088,7 @@ def lattice_hf(
         lossSP,
         state0.flatten(),
         minimizer_kwargs=minimizer_kwargs,
-        niter=numOptSteps,
+        niter=steps,
         callback=print_fun,
         seed=rng,
         **extraops,

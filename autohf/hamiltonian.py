@@ -124,7 +124,7 @@ class AutoHFHamiltonian:
 
       self._terms["T"] = (Tvals, TSites)
       print(f"Added unique T terms: {Tvals}")
-      if self.N is  None:
+      if self.N is None:
         self.N = len(T[0])
 
     self._one_body = T
