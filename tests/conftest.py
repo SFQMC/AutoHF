@@ -37,5 +37,5 @@ def hubbard_4x4():
   # TODO: make this more smooth
   settings = {"L": (L, L)}
   hamiltonian = AutoHFHamiltonian(settings=settings)
-  hamiltonian.add_terms(T=T, U=H_U)
+  hamiltonian.add_terms(T=(T,T), U=H_U)
   return hamiltonian

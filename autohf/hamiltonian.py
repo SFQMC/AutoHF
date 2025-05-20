@@ -33,20 +33,32 @@ class AutoHFHamiltonian:
       in internal format.
   """
 
-  def __init__(self, source=None, settings=None) -> None:
+  def __init__(self, source=None, settings=None, **kwargs) -> None:
     self._terms = {}
     self._one_body = None
+    self.N = None
+    self.Nx, self.Ny = None, None
+    self.Nbands = None
 
     if isinstance(source, Hamiltonian):
       self._init_from_afqmctools(source)
-      self.Nx, self.Ny = None, None
     elif isinstance(source, AutoHFHamiltonian):
-      raise NotImplementedError
+      # TODO copy constructor
+      self.terms = source.terms
+      self.one_body = source.one_body
+      self.Nx, self.Ny = source.Nx, source.Ny
+      self.N = source.N
+      self.Nbands = source.Nbands
     elif source is None:
       if settings is not None:
         self.Nbands = settings.get("Nbands", 1)
         self.Nx, self.Ny = settings["L"]
         self.N = self.Nx * self.Ny * self.Nbands
+      elif "T" in kwargs:
+        # T will set N later when we sort out what it is
+        self.N = kwargs.get("N", None)
+        self.Nx, self.Ny = kwargs.get("Nx", None), kwargs.get("Ny", None)
+        self.Nbands = kwargs.get("Nbands", 1)
       else:
         # in this case, we can still use .set() to add terms
         pass
@@ -55,9 +67,11 @@ class AutoHFHamiltonian:
         f"[For Developers] Can't initialize AutoHF Hamiltonian  \
                                 from source of type {type(source)}"
       )
+    self.add_terms(**kwargs)
 
   def add_terms(self, **kwargs):
     self._add_T(kwargs.get("T", None))
+    # NOTE: T must go first as it sets N for potential scalar U
     self._add_U(kwargs.get("U", None), kwargs.get("U1", None), kwargs.get("U2", None))
     self._add_J(kwargs.get("J", None))
     if "Jheisenberg" in kwargs:  # alias
@@ -89,16 +103,17 @@ class AutoHFHamiltonian:
 
       # clean up shaping
       if isinstance(T, np.ndarray):
-        if len(T.shape) == 2:
-          T = np.stack([T, T])
+        # if len(T.shape) == 2:
+        #  T = np.stack([T, T])
 
         if len(T.shape) != 3:
           raise RuntimeError(
             f"Passed T matrix has shape {T.shape}; needs to be (nspin,N,N) instead"
           )
 
-      if (isinstance(T, list) or isinstance(T, tuple)) and len(T) == 1:
-        T = (T[0], T[0])
+      # Assume this is GHF, let's enforce that two T need to be passed for collinear
+      # if (isinstance(T, list) or isinstance(T, tuple)) and len(T) == 1:
+      #  T = (T[0], T[0])
 
       # up to one T matrix per spin sector
       for sigma, T_sigma in enumerate(T):
@@ -109,16 +124,16 @@ class AutoHFHamiltonian:
 
       self._terms["T"] = (Tvals, TSites)
       print(f"Added unique T terms: {Tvals}")
+      if self.N is  None:
+        self.N = len(T[0])
 
     self._one_body = T
-
-  # def _add_T_from_afqmctools(self,hamiltonian):
-  #    T = _get_T(hamiltonian)
-  #    self._add_T(T)
 
   def _add_U(self, U, U1, U2):
     if U is not None:
       if isinstance(U, float) or isinstance(U, int):
+        if self.N is None:
+          raise RuntimeError("N must be set before passing scalar U")
         U = np.ones(self.N) * U
       if isinstance(U, list) or isinstance(U, tuple):
         U = np.array(U)

@@ -99,9 +99,7 @@ assert Nx == 6 and Ny == 6  # harded coded here
 T = np.zeros((N, N))
 T[hops] = -1
 
-settings = {"L": (Nx, Ny)}
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=U)
+H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
 ####### Step 1 ######
 # First get energy function

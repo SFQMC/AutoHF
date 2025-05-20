@@ -40,9 +40,7 @@ N = Nx * Ny
 Ne = 8
 T = makeT(Nx, Ny)
 
-settings = {"L": (Nx, Ny)}
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=4)
+H = autohf.AutoHFHamiltonian(T=(T, T), U=4)
 
 TGHF_ = autohf.tools.uhf_to_ghf([T, T])
 signs = (-1) ** (np.arange(N) // Nx + np.arange(N) % Nx)

@@ -43,8 +43,6 @@ U = input_settings["hamiltonian"]["U"]
 N = Nx * Ny
 T = makeT(Nx, Ny, lattice_settings["boundary1"] == "PBC", lattice_settings["boundary2"] == "PBC")
 
-settings = {"L": (Nx, Ny)}
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=1.5)
+H = autohf.AutoHFHamiltonian(T=(T, T), U=1.5)
 
 autohf.lattice_hf(H, inputfile=fname)
