@@ -1,6 +1,7 @@
 import pytest
 import numpy as np
 import autohf.terms.uhf as uhf
+import autohf.terms.cholesky as cholesky
 import autohf.tools
 
 
@@ -10,7 +11,7 @@ def rng_slater_det(dim, num_elec):
   ]
 
 
-class TestTermsUHF:
+class TestCholeskyTerms:
   def test_onebody(self):
     dim = 10
 
@@ -20,7 +21,7 @@ class TestTermsUHF:
 
     expected = sum(sum(s[:, j].T.conj() @ A @ s[:, j] for j in range(s.shape[1])) for s in sd)
 
-    assert np.allclose(expected, uhf.uhf_onebody(autohf.tools.sdToRDM(sd), A))
+    assert np.allclose(expected, cholesky.hf_onebody(autohf.tools.sdToRDM(sd), A))
 
     A = np.random.randn(2, dim, dim)
 
@@ -29,7 +30,7 @@ class TestTermsUHF:
       for σ, s in enumerate(sd)
     )
 
-    assert np.allclose(expected, uhf.uhf_onebody(autohf.tools.sdToRDM(sd), A))
+    assert np.allclose(expected, cholesky.hf_onebody(autohf.tools.sdToRDM(sd), A))
 
   def test_cholesky(self):
     dim = 10
@@ -39,9 +40,9 @@ class TestTermsUHF:
     sd = rng_slater_det(dim, (1, 0))
     rdm = autohf.tools.sdToRDM(sd)
 
-    expected = -0.5 * uhf.uhf_onebody(rdm, np.einsum("nsij,nsjk->sik", A, A))
+    expected = -0.5 * cholesky.hf_onebody(rdm, np.einsum("nsij,nsjk->sik", A, A))
 
-    assert np.allclose(expected, uhf.uhf_cholesky(rdm, A))
+    assert np.allclose(expected, cholesky.hf_cholesky(rdm, A))
 
     # hubbard spin-channel
 
@@ -50,11 +51,12 @@ class TestTermsUHF:
       for i in range(dim):
         U[i, σ, i, i] = 1 - 2 * σ
 
-    sd = rng_slater_det(dim, (3, 2))
+    nelec = (3, 2)
+    sd = rng_slater_det(dim, nelec)
     rdm = autohf.tools.sdToRDM(sd)
-    shift = -5 / 2
+    shift = -sum(nelec) / 2
 
-    assert np.allclose(uhf.uhf_U(rdm, np.arange(dim)), uhf.uhf_cholesky(rdm, U) - shift)
+    assert np.allclose(uhf.uhf_U(rdm, np.arange(dim)), cholesky.hf_cholesky(rdm, U) - shift)
     # hubbard charge-channel
 
     U = np.zeros([dim, 2, dim, dim], dtype=np.complex128)
@@ -62,4 +64,4 @@ class TestTermsUHF:
       for i in range(dim):
         U[i, σ, i, i] = 1.0j
 
-    assert np.allclose(uhf.uhf_U(rdm, np.arange(dim)), uhf.uhf_cholesky(rdm, U) + shift)
+    assert np.allclose(uhf.uhf_U(rdm, np.arange(dim)), cholesky.hf_cholesky(rdm, U) + shift)
