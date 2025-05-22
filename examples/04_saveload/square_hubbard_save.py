@@ -49,6 +49,7 @@ hf_settings = {
   "nelec": (Ne, Ne),
   "noncollinear": False,
   "output": output_fname,
+  "dump_trials": True,
 }
 
 #### Setup calculation

@@ -136,7 +136,6 @@ def loadStates(input_, args, nelec):
     state0 = original_data["states"][order[: args.trials]]
 
   elif args.ansatz == "SD" or args.ansatz == "SDC":
-    state0_ref = jnp.array(original_data["orbitals"])
     if "all_orbitals" not in original_data:
       raise RuntimeError(
         "All orbitals were not saved (i.e. dump_trials was not set to True). "
@@ -144,14 +143,22 @@ def loadStates(input_, args, nelec):
       )
     # orbitals leading dim is (nspin,nwalkers,...)
     # so need a reshape
-    original_nelec = original_data["nelec"]
-    if original_nelec[0] != original_nelec[1]:
-      raise NotImplementedError("Polarized calculation not implemented (please raise issue)")
 
-    state0 = jnp.stack([o[order[: args.trials]] for o in original_data["all_orbitals"]])
-    state0 = jnp.swapaxes(state0, 0, 1)
-    # if originally not SDC and now is SDC
-    if original_data["args"].ansatz != "SDC" and args.ansatz == "SDC":
+    old_orb = original_data["orbitals"]
+    maxdim = max([p.shape[-1] for p in old_orb])
+    dtype = old_orb[0].dtype
+    state0_ref = np.zeros((len(old_orb), old_orb[0].shape[0], maxdim), dtype=dtype)
+    for i, p in enumerate(old_orb):
+      x, y = p.shape
+      state0_ref[i, 0:x, 0:y] = old_orb[i][:]
+    # now deal with picking the best of the old orbitals
+    old_orbs = original_data["all_orbitals"]  # (nspin,ntrial,N,Ne)
+    state0 = np.zeros((args.trials, *state0_ref.shape), dtype=dtype)
+    for i, p in enumerate(old_orbs):
+      x, y = p[0].shape
+      state0[:, i, 0:x, 0:y] = old_orbs[i][order[: args.trials], 0:x, :y]
+    ## if originally not SDC and now is SDC
+    if args.ansatz == "SDC":
       state0 = jnp.stack([state0.real, state0.imag])
   print("Loaded state with energy:", original_data["E"])
 
@@ -341,10 +348,11 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
   ############
 
   if rep_type == RepOptions.SLATERDET:
-    orbFunc = lambda x: x
     if spin_symm == SlaterType.GHF:
+      orbFunc = lambda x: (x[0],)
       rdmFunc = sd_to_rdm_noncollinear  # could make safe
     elif spin_symm == SlaterType.UHF:
+      orbFunc = lambda x: (x[0], x[1])
       nelec = kwargs["nelec"]
       if nelec[0] == nelec[1]:
         rdmFunc = sd_to_rdm  # could make safe
@@ -356,7 +364,13 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
   elif rep_type == RepOptions.SLATERDETC:
 
     def orbFunc(state):
-      return state[0] + state[1] * 1j
+      orb = state[0] + state[1] * 1j
+      if spin_symm == SlaterType.GHF:
+        return (orb[0],)
+      elif spin_symm == SlaterType.UHF:
+        return (orb[0], orb[1])
+      else:
+        raise NotImplementedError("Unkown orbFunc for SLATERDET")
 
     nelec = kwargs["nelec"]
 
@@ -410,7 +424,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       def orbFunc(state):
         R = makeRot(state[0])
         orbs = R @ phi0
-        return orbs
+        return (orbs[0], orbs[1])
 
       def rdmFunc(state):
         R = makeRot(state[0])
@@ -457,7 +471,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       def orbFunc(state):
         R = makeRot(state[0])
         orbs = R @ phi0
-        return orbs
+        return (orbs[0],)
 
       def rdmFunc(state):
         R = makeRot(state[0])
@@ -505,7 +519,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
           return orbs
         else:
           all_orbs = jnp.linalg.eigh(Heff)[1]
-          orbs = [all_orbs[0, :, : nelec[0]], all_orbs[1, :, : nelec[1]]]
+          orbs = (all_orbs[0, :, : nelec[0]], all_orbs[1, :, : nelec[1]])
           return orbs
 
       def rdmFunc(state):
@@ -663,7 +677,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     def rdmFunc_E(state):
       orbs = orbFunc(state)
       if spin_symm == SlaterType.GHF:
-        orbs = A(orbs)
+        orbs = (A(orbs[0]),)
         return sd_to_rdm_noncollinear(orbs)
       elif spin_symm == SlaterType.UHF:
         orbs = (A(orbs[0]), A(orbs[1]))
@@ -672,7 +686,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     def shift(state):
       orbs = orbFunc(state)
       if spin_symm == SlaterType.GHF:
-        Z = A(orbs)
+        Z = (A(orbs[0]),)
         return (
           beta
           / 4
@@ -931,7 +945,7 @@ def lattice_hf(
     print(f"Reference HF Energy = {E_ref}")
 
   if steps < 0:  # skip optimization
-    states = [state0_ref]  # how to build phi0 in the ansatz
+    states = jnp.stack([state0_ref])  # how to build phi0 in the ansatz
     state = state0_ref
     E_final = E_ref
     Es = [E_final]
