@@ -65,7 +65,7 @@ hf_settings = {
   "steps": 2000,
   "opt_method": "lbfgs",
   "ansatz": "CUSTOM",
-  "trials": 16,
+  "batch_size": 16,
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": True,
@@ -73,7 +73,7 @@ hf_settings = {
 
 rng = np.random.default_rng(42)
 state0_ref = 0.0 * np.arange(N).reshape(N)
-state0 = state0_ref + rng.normal(scale=0.01, size=(hf_settings["trials"], N))
+state0 = state0_ref + rng.normal(scale=0.01, size=(hf_settings["batch_size"], N))
 
 autohf.lattice_hf(
   H,

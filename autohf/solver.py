@@ -52,7 +52,7 @@ def _toarrayornot(arr):
   return arr
 
 
-def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dump_trials):
+def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dump_batch):
   """Save all the trial states in an extra file
   Will automatically save based on npy/pkl/pickle file extension
   Does nothing if fname is empty/None
@@ -72,7 +72,7 @@ def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dump_trials)
     "states": np.array(states),
     "nelec": nelec,
   }
-  if dump_trials:
+  if dump_batch:
     orbs = [np.array(o) for o in jax.vmap(orbFunc)(states)]
     data["all_orbitals"] = orbs
 
@@ -124,21 +124,21 @@ def loadStates(input_, args, nelec):
   order = np.argsort(Es)
   phi0 = original_data["phi0"]
 
-  if original_data["args"].trials < args.trials:
+  if original_data["args"].batch_size < args.batch_size:
     raise NotImplementedError(
-      f"Old data had {original_data['args'].trials} trials "
-      f"but requesting more on restart {args.trials}. This is currently unsupported"
+      f"Old data had {original_data['args'].batch_size} batch_size "
+      f"but requesting more on restart {args.batch_size}. This is currently unsupported"
     )
 
   if args.ansatz == original_data["args"].ansatz:
     # easy case
     state0_ref = original_data["state"]
-    state0 = original_data["states"][order[: args.trials]]
+    state0 = original_data["states"][order[: args.batch_size]]
 
   elif args.ansatz == "SD" or args.ansatz == "SDC":
     if "all_orbitals" not in original_data:
       raise RuntimeError(
-        "All orbitals were not saved (i.e. dump_trials was not set to True). "
+        "All orbitals were not saved (i.e. dump_batch was not set to True). "
         "Please rerun original calculation or keep the same trial"
       )
     # orbitals leading dim is (nspin,nwalkers,...)
@@ -153,10 +153,10 @@ def loadStates(input_, args, nelec):
       state0_ref[i, 0:x, 0:y] = old_orb[i][:]
     # now deal with picking the best of the old orbitals
     old_orbs = original_data["all_orbitals"]  # (nspin,ntrial,N,Ne)
-    state0 = np.zeros((args.trials, *state0_ref.shape), dtype=dtype)
+    state0 = np.zeros((args.batch_size, *state0_ref.shape), dtype=dtype)
     for i, p in enumerate(old_orbs):
       x, y = p[0].shape
-      state0[:, i, 0:x, 0:y] = old_orbs[i][order[: args.trials], 0:x, :y]
+      state0[:, i, 0:x, 0:y] = old_orbs[i][order[: args.batch_size], 0:x, :y]
     ## if originally not SDC and now is SDC
     if args.ansatz == "SDC":
       state0 = jnp.stack([state0.real, state0.imag])
@@ -813,7 +813,7 @@ def lattice_hf(
   rng = np.random.default_rng(args.seed)
   rep_type = get_ansatz(args.ansatz)
 
-  trials = int(args.trials)
+  batch_size = int(args.batch_size)
 
   #### MAGIC ZONE ###########
   if args.noncollinear:
@@ -870,14 +870,14 @@ def lattice_hf(
     if not args.noncollinear:
       num_params = N * (N + 1) // 2
       nonz = get_nonz(N)
-      state0 = np.zeros((trials, 2, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(trials, len(nonz)))
-      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(trials, len(nonz)))
+      state0 = np.zeros((batch_size, 2, num_params))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
+      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
     else:
       num_params = (2 * N) * (2 * N + 1) // 2
       nonz = get_nonz(2 * N)
-      state0 = np.zeros((trials, 1, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(trials, len(nonz)))
+      state0 = np.zeros((batch_size, 1, num_params))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.SLATERDET_ROTC:
     print("Running in Hermitian (Complex) Rotation Mode")
@@ -886,20 +886,20 @@ def lattice_hf(
     if not args.noncollinear:
       num_params = N * (N + 1) // 2
       nonz = get_nonz_herm(N)
-      state0 = np.zeros((trials, 2, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(trials, len(nonz)))
-      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(trials, len(nonz)))
+      state0 = np.zeros((batch_size, 2, num_params))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
+      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
     else:
       num_params = (2 * N) * (2 * N + 1) // 2
       nonz = get_nonz_herm(2 * N)
-      state0 = np.zeros((trials, 1, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(trials, len(nonz)))
+      state0 = np.zeros((batch_size, 1, num_params))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.SLATERDET:
     print("Running in Slater Determinant Mode")
     maxdim = max([p.shape[-1] for p in phi0])
     state0_ref = np.zeros((len(phi0), phi0[0].shape[0], maxdim))
-    state0 = np.zeros((trials, *state0_ref.shape))
+    state0 = np.zeros((batch_size, *state0_ref.shape))
     shifts = rng.normal(scale=state0_scale, size=state0.shape)
     if force_complex:
       print("Forcing complex orbitals")
@@ -914,7 +914,7 @@ def lattice_hf(
     print("Running in Complex Slater Determinant Mode")
     maxdim = max([p.shape[-1] for p in phi0])
     state0_ref = np.zeros((len(phi0), phi0[0].shape[0], maxdim))
-    state0 = np.zeros((trials, *state0_ref.shape))
+    state0 = np.zeros((batch_size, *state0_ref.shape))
     shifts = rng.normal(scale=state0_scale, size=state0.shape)
     if force_complex:
       print("Forcing complex orbitals")
@@ -932,9 +932,9 @@ def lattice_hf(
   elif rep_type == RepOptions.DIAG:
     print("Running in Diagonalization Mode")
     if not args.noncollinear:
-      state0 = rng.normal(scale=state0_scale / 10, size=((trials, 2, N, N)))
+      state0 = rng.normal(scale=state0_scale / 10, size=((batch_size, 2, N, N)))
     else:
-      state0 = rng.normal(scale=state0_scale / 10, size=((trials, 2 * N, 2 * N)))
+      state0 = rng.normal(scale=state0_scale / 10, size=((batch_size, 2 * N, 2 * N)))
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.CUSTOM:
     state0 = kwargs["state0"]
@@ -950,7 +950,7 @@ def lattice_hf(
     E_final = E_ref
     Es = [E_final]
     output_data = saveStates(
-      states, state2Orbitals, np.array(Es), phi0, args, nelec, args.output, args.dump_trials
+      states, state2Orbitals, np.array(Es), phi0, args, nelec, args.output, args.dump_batch
     )
 
   else:
@@ -1026,7 +1026,7 @@ def lattice_hf(
         plt.show()
 
       output_data = saveStates(
-        state, state2Orbitals, allE, phi0, args, nelec, args.output, args.dump_trials
+        state, state2Orbitals, allE, phi0, args, nelec, args.output, args.dump_batch
       )
       state = state[best_state]
     elif args.opt_method == "lbfgs":
@@ -1058,7 +1058,7 @@ def lattice_hf(
         args,
         nelec,
         args.output,
-        args.dump_trials,
+        args.dump_batch,
       )
       if args.plot:
         rdms = makeRDMs(state)
@@ -1068,9 +1068,9 @@ def lattice_hf(
     elif args.opt_method == "basin":
       from scipy.optimize import basinhopping
 
-      if trials != 1:
+      if batch_size != 1:
         warnings.warn(
-          "Basin hopping does not use trials, modify the settings instead!",
+          "Basin hopping does not use batch_size, modify the settings instead!",
           RuntimeWarning,
           stacklevel=2,
         )
@@ -1119,7 +1119,7 @@ def lattice_hf(
         args,
         nelec,
         args.output,
-        args.dump_trials,
+        args.dump_batch,
       )
       if args.plot:
         rdms = makeRDMs(state)

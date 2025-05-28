@@ -7,27 +7,25 @@ class TestSolverRestart:
   @pytest.mark.parametrize("ansatz", ["SD_ROT", "SD", "DIAG", "SDC", "SD_ROTC"])
   @pytest.mark.parametrize("nelec", [(3, 3), (6, 2)])
   def test_restart_collinear(self, ansatz, nelec, hubbard_4x4):
-    N = 16
     hf_settings = dict(
-      ansatz=ansatz, steps=-1, nelec=nelec, trials=3, seed=12345, noncollinear=False
+      ansatz=ansatz, steps=-1, nelec=nelec, batch_size=3, seed=12345, noncollinear=False
     )
 
     results = lattice_hf(hubbard_4x4, hf_settings)
-    results_restart = lattice_hf(hubbard_4x4, hf_settings | {"trials": 2}, start_from=results)
+    results_restart = lattice_hf(hubbard_4x4, hf_settings | {"batch_size": 2}, start_from=results)
 
     assert np.allclose(results[0]["E"], results_restart[0]["E"])
 
   @pytest.mark.parametrize("ansatz", ["SD_ROT", "SD", "DIAG", "SDC", "SD_ROTC"])
   @pytest.mark.parametrize("nelec", [(3, 3), (6, 2)])
   def test_restart_noncollinear(self, ansatz, nelec, hubbard_4x4):
-    N = 16
     hf_settings = dict(
-      ansatz=ansatz, steps=-1, nelec=nelec, trials=3, seed=12345, noncollinear=True
+      ansatz=ansatz, steps=-1, nelec=nelec, batch_size=3, seed=12345, noncollinear=True
     )
 
     results = lattice_hf(hubbard_4x4, hf_settings)
     results_restart = lattice_hf(
-      hubbard_4x4, hf_settings | {"trials": 2, "seed": 42}, start_from=results
+      hubbard_4x4, hf_settings | {"batch_size": 2, "seed": 42}, start_from=results
     )
 
     assert np.allclose(results[0]["E"], results_restart[0]["E"])
@@ -36,14 +34,19 @@ class TestSolverRestart:
   @pytest.mark.parametrize("nelec", [(3, 3), (6, 2)])
   @pytest.mark.parametrize("nc", [False, True])
   def test_restart_convert(self, ansatz, nelec, nc, hubbard_4x4):
-    N = 16
     hf_settings = dict(
-      ansatz=ansatz, steps=-1, nelec=nelec, trials=3, seed=12345, noncollinear=nc, dump_trials=True
+      ansatz=ansatz,
+      steps=-1,
+      nelec=nelec,
+      batch_size=3,
+      seed=12345,
+      noncollinear=nc,
+      dump_batch=True,
     )
 
     results = lattice_hf(hubbard_4x4, hf_settings)
     results_restart = lattice_hf(
-      hubbard_4x4, hf_settings | {"ansatz": "SD", "trials": 2, "seed": 42}, start_from=results
+      hubbard_4x4, hf_settings | {"ansatz": "SD", "batch_size": 2, "seed": 42}, start_from=results
     )
 
     assert np.allclose(results[0]["E"], results_restart[0]["E"])

@@ -47,14 +47,14 @@ Nx, Ny = 6, 6
 U = 8
 Ne = 18
 steps = 2000
-trials = 4
+batch_size = 4
 
 hf_settings = {
   "verbose": False,
   "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "trials": trials,
+  "batch_size": batch_size,
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": True,

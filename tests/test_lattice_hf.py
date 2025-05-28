@@ -16,7 +16,7 @@ class TestAutoHFSolver:
     """
 
     hf_settings = dict(
-      ansatz="SD_ROT", steps=10, nelec=(8, 8), trials=3, seed=12345, noncollinear=False
+      ansatz="SD_ROT", steps=10, nelec=(8, 8), batch_size=3, seed=12345, noncollinear=False
     )
 
     results = lattice_hf(hamiltonian=hubbard_4x4, settings=hf_settings)
@@ -40,10 +40,10 @@ class TestAutoHFSolver:
       ansatz="SD_ROT",
       steps=10,
       nelec=(8, 8),
-      trials=3,
+      batch_size=3,
       seed=12345,
       noncollinear=False,
-      dump_trials=True,
+      dump_batch=True,
     )
 
     results = lattice_hf(hubbard_4x4, settings=hf_settings)
@@ -72,7 +72,7 @@ class TestAutoHFSolver:
   def test_shapes_collinear(self, ansatz, nelec, hubbard_4x4):
     N = 16
     hf_settings = dict(
-      ansatz=ansatz, steps=-1, nelec=nelec, trials=3, seed=12345, noncollinear=False
+      ansatz=ansatz, steps=-1, nelec=nelec, batch_size=3, seed=12345, noncollinear=False
     )
 
     results = lattice_hf(hubbard_4x4, hf_settings)
@@ -91,7 +91,7 @@ class TestAutoHFSolver:
   def test_shapes_noncollinear(self, ansatz, nelec, hubbard_4x4):
     N = 16
     hf_settings = dict(
-      ansatz=ansatz, steps=-1, nelec=nelec, trials=3, seed=12345, noncollinear=True
+      ansatz=ansatz, steps=-1, nelec=nelec, batch_size=3, seed=12345, noncollinear=True
     )
 
     results = lattice_hf(hubbard_4x4, hf_settings)

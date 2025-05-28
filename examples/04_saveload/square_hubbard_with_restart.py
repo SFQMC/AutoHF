@@ -37,19 +37,19 @@ Nx, Ny = 4, 4
 U = 8.5
 Ne = 7
 steps = 100
-trials = 32
+batch_size = 32
 output_base = "autohf_output"
 hf_settings = {
   "verbose": False,
   "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "trials": trials,
+  "batch_size": batch_size,
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": False,
   "output": output_base + "_0.pkl",
-  "dump_trials": True,  # needed to convert from SD_ROT to SD
+  "dump_batch": True,  # needed to convert from SD_ROT to SD
   "seed": 42,
 }
 
@@ -71,7 +71,7 @@ hf_settings = {
   "opt_method": "lbfgs",
   "ansatz": "SD",
   "riemannian": True,
-  "trials": trials // 2,  # pick the best half
+  "batch_size": batch_size // 2,  # pick the best half
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": False,

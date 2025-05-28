@@ -49,7 +49,7 @@ hf_settings = {
   "steps": 100,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "trials": 4,
+  "batch_size": 4,
   "gpu": False,
   "nelec": (7, 7),
 }
