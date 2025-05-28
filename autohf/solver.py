@@ -21,7 +21,7 @@ from autohf.interfaces.afqmctools import fail_without_afqmctools, spin_squared, 
 
 
 from .io import read_input_params
-from .tools import sdToRDM, sdToRDM_noncollinear, create_polarized_func
+from .tools import sd_to_rdm, sd_to_rdm_noncollinear, create_polarized_func
 from .options import SlaterType, RepOptions, get_ansatz, process_args
 from .rotation_tools import (
   jexpm,
@@ -52,7 +52,7 @@ def _toarrayornot(arr):
   return arr
 
 
-def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dumpTrials):
+def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dump_batch):
   """Save all the trial states in an extra file
   Will automatically save based on npy/pkl/pickle file extension
   Does nothing if fname is empty/None
@@ -72,7 +72,7 @@ def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dumpTrials):
     "states": np.array(states),
     "nelec": nelec,
   }
-  if dumpTrials:
+  if dump_batch:
     orbs = [np.array(o) for o in jax.vmap(orbFunc)(states)]
     data["all_orbitals"] = orbs
 
@@ -124,41 +124,48 @@ def loadStates(input_, args, nelec):
   order = np.argsort(Es)
   phi0 = original_data["phi0"]
 
-  if original_data["args"].numTrials < args.numTrials:
+  if original_data["args"].batch_size < args.batch_size:
     raise NotImplementedError(
-      f"Old data had {original_data['args'].numTrials} trials "
-      f"but requesting more on restart {args.numTrials}. This is currently unsupported"
+      f"Old data had {original_data['args'].batch_size} batch_size "
+      f"but requesting more on restart {args.batch_size}. This is currently unsupported"
     )
 
   if args.ansatz == original_data["args"].ansatz:
     # easy case
     state0_ref = original_data["state"]
-    state0 = original_data["states"][order[: args.numTrials]]
+    state0 = original_data["states"][order[: args.batch_size]]
 
   elif args.ansatz == "SD" or args.ansatz == "SDC":
-    state0_ref = jnp.array(original_data["orbitals"])
     if "all_orbitals" not in original_data:
       raise RuntimeError(
-        "All orbitals were not saved (i.e. dumpTrials was not set to True). "
+        "All orbitals were not saved (i.e. dump_batch was not set to True). "
         "Please rerun original calculation or keep the same trial"
       )
     # orbitals leading dim is (nspin,nwalkers,...)
     # so need a reshape
-    original_nelec = original_data["nelec"]
-    if original_nelec[0] != original_nelec[1]:
-      raise NotImplementedError("Polarized calculation not implemented (please raise issue)")
 
-    state0 = jnp.stack([o[order[: args.numTrials]] for o in original_data["all_orbitals"]])
-    state0 = jnp.swapaxes(state0, 0, 1)
-    # if originally not SDC and now is SDC
-    if original_data["args"].ansatz != "SDC" and args.ansatz == "SDC":
+    old_orb = original_data["orbitals"]
+    maxdim = max([p.shape[-1] for p in old_orb])
+    dtype = old_orb[0].dtype
+    state0_ref = np.zeros((len(old_orb), old_orb[0].shape[0], maxdim), dtype=dtype)
+    for i, p in enumerate(old_orb):
+      x, y = p.shape
+      state0_ref[i, 0:x, 0:y] = old_orb[i][:]
+    # now deal with picking the best of the old orbitals
+    old_orbs = original_data["all_orbitals"]  # (nspin,ntrial,N,Ne)
+    state0 = np.zeros((args.batch_size, *state0_ref.shape), dtype=dtype)
+    for i, p in enumerate(old_orbs):
+      x, y = p[0].shape
+      state0[:, i, 0:x, 0:y] = old_orbs[i][order[: args.batch_size], 0:x, :y]
+    ## if originally not SDC and now is SDC
+    if args.ansatz == "SDC":
       state0 = jnp.stack([state0.real, state0.imag])
   print("Loaded state with energy:", original_data["E"])
 
   return state0, state0_ref, phi0
 
 
-def construct_random_Phi(rng, N, Nes, spin_symm=SlaterType.COLLINEAR, delta=0.00001, Phi=None):
+def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.00001, Phi=None):
   """
   construct a random Slater determinant as
 
@@ -170,15 +177,15 @@ def construct_random_Phi(rng, N, Nes, spin_symm=SlaterType.COLLINEAR, delta=0.00
   Inputs:
   - rng: initialized numpy random number generator
   - N : number of basis set functions (number of sites * number of bands)
-  - Nes : number of electrons as an iterable of length 2 (Nup,Ndown)
+  - neelc : number of electrons as an iterable of length 2 (Nup,Ndown)
   - spin_symm : the desired spin symmetry of the Slater determinant
   """
   print("Making a randomized initial guess")
   if spin_symm == SlaterType.NONCOLLINEAR:
-    slater_shape = (2 * N, sum(Nes))
+    slater_shape = (2 * N, sum(nelec))
     shape = (2 * N, 2 * N)
   else:
-    slater_shape = (N, sum(Nes))
+    slater_shape = (N, sum(nelec))
     shape = (N, N)
 
   if Phi is None:
@@ -192,10 +199,10 @@ def construct_random_Phi(rng, N, Nes, spin_symm=SlaterType.COLLINEAR, delta=0.00
   if spin_symm == SlaterType.NONCOLLINEAR:
     return jnp.stack([Phi])
   elif spin_symm == SlaterType.COLLINEAR:
-    return (Phi[:, : Nes[0]], Phi[:, : Nes[1]])
+    return (Phi[:, : nelec[0]], Phi[:, : nelec[1]])
 
 
-def constructPhi0(Tlist, N, Nes, spin_symm=SlaterType.COLLINEAR, averageSpins=False):
+def constructPhi0(Tlist, N, nelec, spin_symm=SlaterType.COLLINEAR, averageSpins=False):
   # assume Tlist is a list of either [NC] or [up,dn]
   # if averageSpins, combine up and down
   # eventually replace that with hamiltonian symmetry system
@@ -220,7 +227,7 @@ def constructPhi0(Tlist, N, Nes, spin_symm=SlaterType.COLLINEAR, averageSpins=Fa
       )
     T = Tlist[0]
     _, orbitals = np.linalg.eigh(T)
-    return jnp.stack([orbitals[:, : sum(Nes)]])
+    return jnp.stack([orbitals[:, : sum(nelec)]])
 
   # collinear T version
   assert np.all([T.shape[0] == N for T in Tlist])
@@ -237,12 +244,12 @@ def constructPhi0(Tlist, N, Nes, spin_symm=SlaterType.COLLINEAR, averageSpins=Fa
     _, orbitals_up = np.linalg.eigh(Tup)
     _, orbitals_down = np.linalg.eigh(Tdn)
 
-    return (orbitals_up[:, : Nes[0]], orbitals_down[:, : Nes[1]])
+    return (orbitals_up[:, : nelec[0]], orbitals_down[:, : nelec[1]])
 
   elif spin_symm == SlaterType.NONCOLLINEAR:
     # collinear Hamiltonian, NC walkers
     _, orbitals = np.linalg.eigh(np.block([[Tup, np.zeros_like(Tdn)], [np.zeros_like(Tup), Tdn]]))
-    return jnp.stack([orbitals[:, : Nes[0] + Nes[1]]])
+    return jnp.stack([orbitals[:, : nelec[0] + nelec[1]]])
 
 
 ###########################################################################
@@ -341,31 +348,38 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
   ############
 
   if rep_type == RepOptions.SLATERDET:
-    orbFunc = lambda x: x
     if spin_symm == SlaterType.GHF:
-      rdmFunc = sdToRDM_noncollinear  # could make safe
+      orbFunc = lambda x: (x[0],)
+      rdmFunc = sd_to_rdm_noncollinear  # could make safe
     elif spin_symm == SlaterType.UHF:
-      nelec = kwargs["Ne"]
+      orbFunc = lambda x: (x[0], x[1])
+      nelec = kwargs["nelec"]
       if nelec[0] == nelec[1]:
-        rdmFunc = sdToRDM  # could make safe
+        rdmFunc = sd_to_rdm  # could make safe
       else:
-        rdmFunc = create_polarized_func(phi0, sdToRDM)
+        rdmFunc = create_polarized_func(phi0, sd_to_rdm)
         orbFunc = create_polarized_func(phi0, lambda x: x)
     else:
       raise NotImplementedError("Unkown rdmfunc for SLATERDET")
   elif rep_type == RepOptions.SLATERDETC:
 
     def orbFunc(state):
-      return state[0] + state[1] * 1j
+      orb = state[0] + state[1] * 1j
+      if spin_symm == SlaterType.GHF:
+        return (orb[0],)
+      elif spin_symm == SlaterType.UHF:
+        return (orb[0], orb[1])
+      else:
+        raise NotImplementedError("Unkown orbFunc for SLATERDET")
 
-    nelec = kwargs["Ne"]
+    nelec = kwargs["nelec"]
 
     def rdmFunc(state):
       o = orbFunc(state)
       if spin_symm == SlaterType.GHF:
-        return sdToRDM_noncollinear(o)
+        return sd_to_rdm_noncollinear(o)
       elif spin_symm == SlaterType.UHF:
-        return sdToRDM(o)
+        return sd_to_rdm(o)
       else:
         raise NotImplementedError("Unkown rdmfunc for SLATERDET")
 
@@ -375,7 +389,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
 
         def rdmFunc(state):
           o = state[0] + state[1] * 1j
-          return sdToRDM(combine(o))
+          return sd_to_rdm(combine(o))
 
         def orbFunc(state):
           o = state[0] + state[1] * 1j
@@ -410,12 +424,12 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       def orbFunc(state):
         R = makeRot(state[0])
         orbs = R @ phi0
-        return orbs
+        return (orbs[0], orbs[1])
 
       def rdmFunc(state):
         R = makeRot(state[0])
         orbs = R @ phi0
-        return sdToRDM_noncollinear(orbs)
+        return sd_to_rdm_noncollinear(orbs)
     else:
 
       def orbFunc(state):
@@ -426,7 +440,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       def rdmFunc(state):
         R_up, R_dn = makeRot(state[0]), makeRot(state[1])
         orbs = (R_up @ phi0_up, R_dn @ phi0_dn)
-        return sdToRDM(orbs)
+        return sd_to_rdm(orbs)
   elif rep_type == RepOptions.SLATERDET_ROTC:
     if "approx_expm" in kwargs:
       use_approx_expm = kwargs["approx_expm"]
@@ -457,12 +471,12 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       def orbFunc(state):
         R = makeRot(state[0])
         orbs = R @ phi0
-        return orbs
+        return (orbs[0],)
 
       def rdmFunc(state):
         R = makeRot(state[0])
         orbs = R @ phi0
-        return sdToRDM_noncollinear(orbs)
+        return sd_to_rdm_noncollinear(orbs)
     else:
 
       def orbFunc(state):
@@ -473,9 +487,9 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       def rdmFunc(state):
         R_up, R_dn = makeRot(state[0]), makeRot(state[1])
         orbs = (R_up @ phi0_up, R_dn @ phi0_dn)
-        return sdToRDM(orbs)
+        return sd_to_rdm(orbs)
   elif rep_type == RepOptions.DIAG:
-    Ne = kwargs["Ne"]
+    nelec = kwargs["nelec"]
     Tlist_ = hamil.get_one_body()
     Tlist_ = [_toarrayornot(t) for t in Tlist_]
     if spin_symm == SlaterType.GHF:
@@ -495,30 +509,30 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
         T_[1, :] = Tlist_[1]
     print("Hopping used:", T_)
 
-    def makefunc(Ne, T_):
-      Ne2 = np.sum(Ne)
+    def makefunc(nelec, T_):
+      Ntot = np.sum(nelec)
 
       def orbFunc(state):
         Heff = T_ + (state + jnp.swapaxes(state, -1, -2).conj())  # symmetrized
         if spin_symm == SlaterType.GHF:
-          orbs = (jnp.linalg.eigh(Heff)[1][:, :Ne2],)
+          orbs = (jnp.linalg.eigh(Heff)[1][:, :Ntot],)
           return orbs
         else:
           all_orbs = jnp.linalg.eigh(Heff)[1]
-          orbs = [all_orbs[0, :, : Ne[0]], all_orbs[1, :, : Ne[1]]]
+          orbs = (all_orbs[0, :, : nelec[0]], all_orbs[1, :, : nelec[1]])
           return orbs
 
       def rdmFunc(state):
         if spin_symm == SlaterType.GHF:
           orbs = orbFunc(state)
-          return sdToRDM_noncollinear(orbs)
+          return sd_to_rdm_noncollinear(orbs)
         else:
           orbs = orbFunc(state)
-          return sdToRDM(orbs)
+          return sd_to_rdm(orbs)
 
       return orbFunc, rdmFunc
 
-    orbFunc, rdmFunc = makefunc(Ne, T_)
+    orbFunc, rdmFunc = makefunc(nelec, T_)
   elif rep_type == RepOptions.CUSTOM:
     # a representation needs the following:
     # 1. orbFunc : state->orbitals
@@ -653,7 +667,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     # check that we are SD only
     assert rep_type in [RepOptions.SLATERDET, RepOptions.SLATERDETC]
     beta = kwargs.get("beta", 1e-8)  # TODO: calc this
-    Ne = kwargs["Ne"]
+    nelec = kwargs["nelec"]
     print(f"Using Riemannian CD mode, {beta=}")
 
     def A(X):
@@ -663,26 +677,30 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     def rdmFunc_E(state):
       orbs = orbFunc(state)
       if spin_symm == SlaterType.GHF:
-        orbs = A(orbs)
-        return sdToRDM_noncollinear(orbs)
+        orbs = (A(orbs[0]),)
+        return sd_to_rdm_noncollinear(orbs)
       elif spin_symm == SlaterType.UHF:
         orbs = (A(orbs[0]), A(orbs[1]))
-        return sdToRDM(orbs)
+        return sd_to_rdm(orbs)
 
     def shift(state):
       orbs = orbFunc(state)
       if spin_symm == SlaterType.GHF:
-        Z = A(orbs)
+        Z = (A(orbs[0]),)
         return (
           beta
           / 4
-          * jnp.linalg.norm((jnp.swapaxes(Z[0].conj(), -1, -2) @ Z[0]) - np.eye(sum(Ne)), "fro")
+          * jnp.linalg.norm((jnp.swapaxes(Z[0].conj(), -1, -2) @ Z[0]) - np.eye(sum(nelec)), "fro")
           ** 2
         )
       else:
         Z = (A(orbs[0]), A(orbs[1]))
-        n1 = jnp.linalg.norm((jnp.swapaxes(Z[0].conj(), -1, -2) @ Z[0]) - np.eye(Ne[0]), "fro") ** 2
-        n2 = jnp.linalg.norm((jnp.swapaxes(Z[1].conj(), -1, -2) @ Z[1]) - np.eye(Ne[1]), "fro") ** 2
+        n1 = (
+          jnp.linalg.norm((jnp.swapaxes(Z[0].conj(), -1, -2) @ Z[0]) - np.eye(nelec[0]), "fro") ** 2
+        )
+        n2 = (
+          jnp.linalg.norm((jnp.swapaxes(Z[1].conj(), -1, -2) @ Z[1]) - np.eye(nelec[1]), "fro") ** 2
+        )
         return beta / 4 * (n1 + n2)
 
   else:
@@ -738,7 +756,7 @@ def lattice_hf(
   start_from=None,
   inputfile=None,
   custom_energy_term=None,
-  suppress_logo=False,
+  verbosity=1,  # 0: no logo, minimal, 1: usual, 2: extra
   **kwargs,
 ):
   """
@@ -752,7 +770,7 @@ def lattice_hf(
     - ╜ ╙ ╚╝ ╜ ╚╝ ╜ ╙╨ ----
     -----------------------
     """
-  if not suppress_logo:
+  if verbosity > 0:
     print(banner)
 
   if hamiltonian is None:
@@ -767,10 +785,10 @@ def lattice_hf(
     settings = infile_dict["autohf"] | infile_dict["misc_params"]
     settings["inputfile"] = inputfile
 
-  args = process_args(settings, not suppress_logo)
+  args = process_args(settings, verbosity > 0)
 
   eta = float(args.eta)
-  numOptSteps = int(args.numSteps)
+  steps = int(args.steps)
   state0_scale = float(args.state0_scale)
 
   if not args.gpu:
@@ -795,7 +813,7 @@ def lattice_hf(
   rng = np.random.default_rng(args.seed)
   rep_type = get_ansatz(args.ansatz)
 
-  numTrials = int(args.numTrials)
+  batch_size = int(args.batch_size)
 
   #### MAGIC ZONE ###########
   if args.noncollinear:
@@ -834,7 +852,7 @@ def lattice_hf(
     debug_mode=args.verbose,
     ref_state=phi0,
     noncollinear=args.noncollinear,
-    Ne=nelec,
+    nelec=nelec,
     riemannian=args.riemannian,
     custom_energy_term=custom_energy_term,
     **kwargs,
@@ -852,14 +870,14 @@ def lattice_hf(
     if not args.noncollinear:
       num_params = N * (N + 1) // 2
       nonz = get_nonz(N)
-      state0 = np.zeros((numTrials, 2, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
-      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
+      state0 = np.zeros((batch_size, 2, num_params))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
+      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
     else:
       num_params = (2 * N) * (2 * N + 1) // 2
       nonz = get_nonz(2 * N)
-      state0 = np.zeros((numTrials, 1, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
+      state0 = np.zeros((batch_size, 1, num_params))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.SLATERDET_ROTC:
     print("Running in Hermitian (Complex) Rotation Mode")
@@ -868,20 +886,20 @@ def lattice_hf(
     if not args.noncollinear:
       num_params = N * (N + 1) // 2
       nonz = get_nonz_herm(N)
-      state0 = np.zeros((numTrials, 2, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
-      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
+      state0 = np.zeros((batch_size, 2, num_params))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
+      state0[:, 1, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
     else:
       num_params = (2 * N) * (2 * N + 1) // 2
       nonz = get_nonz_herm(2 * N)
-      state0 = np.zeros((numTrials, 1, num_params))
-      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(numTrials, len(nonz)))
+      state0 = np.zeros((batch_size, 1, num_params))
+      state0[:, 0, nonz] = rng.normal(scale=state0_scale, size=(batch_size, len(nonz)))
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.SLATERDET:
     print("Running in Slater Determinant Mode")
     maxdim = max([p.shape[-1] for p in phi0])
     state0_ref = np.zeros((len(phi0), phi0[0].shape[0], maxdim))
-    state0 = np.zeros((numTrials, *state0_ref.shape))
+    state0 = np.zeros((batch_size, *state0_ref.shape))
     shifts = rng.normal(scale=state0_scale, size=state0.shape)
     if force_complex:
       print("Forcing complex orbitals")
@@ -896,7 +914,7 @@ def lattice_hf(
     print("Running in Complex Slater Determinant Mode")
     maxdim = max([p.shape[-1] for p in phi0])
     state0_ref = np.zeros((len(phi0), phi0[0].shape[0], maxdim))
-    state0 = np.zeros((numTrials, *state0_ref.shape))
+    state0 = np.zeros((batch_size, *state0_ref.shape))
     shifts = rng.normal(scale=state0_scale, size=state0.shape)
     if force_complex:
       print("Forcing complex orbitals")
@@ -914,24 +932,25 @@ def lattice_hf(
   elif rep_type == RepOptions.DIAG:
     print("Running in Diagonalization Mode")
     if not args.noncollinear:
-      state0 = rng.normal(scale=state0_scale / 10, size=((numTrials, 2, N, N)))
+      state0 = rng.normal(scale=state0_scale / 10, size=((batch_size, 2, N, N)))
     else:
-      state0 = rng.normal(scale=state0_scale / 10, size=((numTrials, 2 * N, 2 * N)))
+      state0 = rng.normal(scale=state0_scale / 10, size=((batch_size, 2 * N, 2 * N)))
     state0_ref = state0[0] * 0.0
   elif rep_type == RepOptions.CUSTOM:
     state0 = kwargs["state0"]
     state0_ref = kwargs.get("state0_ref", state0 * 0.0)
 
   E_ref = energy(state0_ref)
-  print(f"Reference HF Energy = {E_ref}")
+  if verbosity > 0:
+    print(f"Reference HF Energy = {E_ref}")
 
-  if numOptSteps < 0:  # skip optimization
-    states = [state0_ref]  # how to build phi0 in the ansatz
+  if steps < 0:  # skip optimization
+    states = jnp.stack([state0_ref])  # how to build phi0 in the ansatz
     state = state0_ref
     E_final = E_ref
     Es = [E_final]
     output_data = saveStates(
-      states, state2Orbitals, np.array(Es), phi0, args, nelec, args.output, args.dumpTrials
+      states, state2Orbitals, np.array(Es), phi0, args, nelec, args.output, args.dump_batch
     )
 
   else:
@@ -939,20 +958,22 @@ def lattice_hf(
       # Optimizer setup
       _optax_settings = {"scale_by": optax.scale_by_belief}
 
-      optimizer = optax.chain(
-        # optax.clip_by_global_norm(1.0),  # Clip by the gradient by the global norm.
-        # optax.scale_by_adam(),
-        # optax.scale_by_belief(),
-        _optax_settings["scale_by"](),
-        # Scale updates by -1 since optax.apply_updates is additive
-        # and we want to descend on the loss.
-        optax.scale(-eta),
-      )
+      optimizer = kwargs.get("optimizer", None)
+      if optimizer is None:
+        optimizer = optax.chain(
+          # optax.clip_by_global_norm(1.0),  # Clip by the gradient by the global norm.
+          # optax.scale_by_adam(),
+          # optax.scale_by_belief(),
+          _optax_settings["scale_by"](),
+          # Scale updates by -1 since optax.apply_updates is additive
+          # and we want to descend on the loss.
+          optax.scale(-eta),
+        )
 
       state = state0.copy()
       opt_state = jax.vmap(optimizer.init)(state)
       Es = []
-      bestState = 0
+      best_state = 0
       if args.plot:
         fig, ax = plt.subplots(1, 2, figsize=(12, 4))
         (line1,) = ax[0].plot(np.arange(len(Es)), Es, "o-")
@@ -960,7 +981,7 @@ def lattice_hf(
         ax[0].set_xlabel("Step")
         ax[0].set_ylabel("E")
 
-        rdms = makeRDMs(state[bestState])
+        rdms = makeRDMs(state[best_state])
         # TODO: make a function that returns nup,ndn
         # and accounts for collinear vs. noncollinear
         nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
@@ -968,17 +989,17 @@ def lattice_hf(
         line2, *_ = ax[1].plot(np.arange(Nx), (nup - ndn).reshape(Nx, Ny * Nbands) / 2)
         ax[1].set_xlabel("Step")
         ax[1].set_ylabel("<Sz>")
-      for _ in range(numOptSteps):
+      for _ in range(steps):
         # TODO: this fails on complex-valued t-matrix elements
         allE, derivs = loss_v(state)
-        bestState = np.argmin(allE)
+        best_state = np.argmin(allE)
 
-        Es.append(allE[bestState])
+        Es.append(allE[best_state])
         print(Es[-1], allE)  # TODO: print more info!!
         # find out density
         # TODO, loss should output
         if args.plot:
-          rdms = makeRDMs(state[bestState])
+          rdms = makeRDMs(state[best_state])
           nup, ndn = rdms[0].diagonal(), rdms[1].diagonal()
 
         # update params
@@ -1005,34 +1026,39 @@ def lattice_hf(
         plt.show()
 
       output_data = saveStates(
-        state, state2Orbitals, allE, phi0, args, nelec, args.output, args.dumpTrials
+        state, state2Orbitals, allE, phi0, args, nelec, args.output, args.dump_batch
       )
-      state = state[bestState]
+      state = state[best_state]
     elif args.opt_method == "lbfgs":
       # TODO: have this be the first run of a more useful function
       print(f"Initial Energy: {loss_v(state0)[0]}", flush=True)
       extraops = kwargs.get("jaxoptargs", {})
-      solver = jaxopt.LBFGS(fun=loss, value_and_grad=True, maxiter=numOptSteps, **extraops)
+      solver = jaxopt.LBFGS(fun=loss, value_and_grad=True, maxiter=steps, **extraops)
       run_v = jax.vmap(solver.run)
       res = run_v(state0)
 
-      bestState = np.argmin(res.state.value)
-      state = res.params[bestState]
-      print(
-        "# iterations:", res.state.iter_num, "frac of possible:", res.state.iter_num / numOptSteps
-      )
-      print("Final energy:", res.state.value[bestState], res.state.value, flush=True)
+      best_state = np.argmin(res.state.value)
+      state = res.params[best_state]
+      print("# iterations:", res.state.iter_num, "frac of possible:", res.state.iter_num / steps)
+      print("Final energy:", res.state.value[best_state], res.state.value, flush=True)
 
-      if res.state.iter_num[bestState] == numOptSteps:
+      if res.state.iter_num[best_state] == steps:
         warnings.warn(
-          f"The best variational state did not converge in {numOptSteps} steps. "
+          f"The best variational state did not converge in {steps} steps. "
           "Inspect result carefully!",
           RuntimeWarning,
           stacklevel=2,
         )
 
       output_data = saveStates(
-        res.params, state2Orbitals, res.state.value, phi0, args, nelec, args.output, args.dumpTrials
+        res.params,
+        state2Orbitals,
+        res.state.value,
+        phi0,
+        args,
+        nelec,
+        args.output,
+        args.dump_batch,
       )
       if args.plot:
         rdms = makeRDMs(state)
@@ -1042,9 +1068,9 @@ def lattice_hf(
     elif args.opt_method == "basin":
       from scipy.optimize import basinhopping
 
-      if numTrials != 1:
+      if batch_size != 1:
         warnings.warn(
-          "Basin hopping does not use numTrials, modify the settings instead!",
+          "Basin hopping does not use batch_size, modify the settings instead!",
           RuntimeWarning,
           stacklevel=2,
         )
@@ -1078,7 +1104,7 @@ def lattice_hf(
         lossSP,
         state0.flatten(),
         minimizer_kwargs=minimizer_kwargs,
-        niter=numOptSteps,
+        niter=steps,
         callback=print_fun,
         seed=rng,
         **extraops,
@@ -1093,7 +1119,7 @@ def lattice_hf(
         args,
         nelec,
         args.output,
-        args.dumpTrials,
+        args.dump_batch,
       )
       if args.plot:
         rdms = makeRDMs(state)

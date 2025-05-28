@@ -36,28 +36,27 @@ def makeT(Nx, Ny, xperiodic=True, yperiodic=True):
 Nx, Ny = 4, 4
 U = 1.5
 Ne = 7
-numSteps = 100
-numTrials = 4
+steps = 100
+batch_size = 4
 output_fname = "autohf_output.pkl"
 hf_settings = {
   "verbose": False,
-  "numSteps": numSteps,
+  "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": numTrials,
+  "batch_size": batch_size,
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": False,
   "output": output_fname,
+  "dump_batch": True,
 }
 
 #### Setup calculation
 N = Nx * Ny
 T = makeT(Nx, Ny)
 
-settings = {"L": (Nx, Ny)}  # change to shape?
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=U)
+H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
 autohf.lattice_hf(
   H,

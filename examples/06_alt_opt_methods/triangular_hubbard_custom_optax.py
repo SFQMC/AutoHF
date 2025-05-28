@@ -9,9 +9,11 @@ config.update("jax_enable_x64", True)
 import numpy as np
 # import matplotlib.pyplot as plt
 
-
 import autohf
-
+import jax
+import optax
+from typing import NamedTuple, Union
+import optax.tree_utils as otu
 
 hops = (np.array([ 0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2,  2,
                         2,  3,  3,  3,  3,  3,  3,  4,  4,  4,  4,  4,  4,  5,  5,  5,  5,
@@ -46,16 +48,17 @@ hops = (np.array([ 0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2
 Nx, Ny = 6, 6
 U = 8
 Ne = 18
-numSteps = 2000
-numTrials = 4
+steps = 500
+batch_size = 4
 
 hf_settings = {
   "verbose": False,
-  "numSteps": numSteps,
+  "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": numTrials,
+  "batch_size": batch_size,
   "gpu": False,
+  "seed": 42,
   "nelec": (Ne, Ne),
   "noncollinear": True,
   "state0_scale": 0.001,  # start close to U=0
@@ -67,11 +70,100 @@ assert Nx == 6 and Ny == 6  # harded coded here
 T = np.zeros((N, N))
 T[hops] = -1
 
-settings = {"L": (Nx, Ny)}
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=U)
+H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
-autohf.lattice_hf(
+## Standard lbfgs to get a sense of things
+data, data_f = autohf.lattice_hf(
   H,
   settings=hf_settings,
 )
+E_lbfgs = data["E"]
+
+# Gradient Descent via optax
+opt = optax.chain(
+  # Sets the parameters of Adam. Note the learning_rate is not here.
+  optax.scale_by_adam(b1=0.9, b2=0.999, eps=1e-8),
+  # Puts a minus sign to *minimize* the loss.
+  optax.scale(-0.01),
+)
+
+data, data_f = autohf.lattice_hf(
+  H,
+  settings=hf_settings | dict(opt_method="grad"),
+  optimizer=opt,
+)
+E_grad = data["E"]
+
+
+# Now Construct custom optimization ala Optax examples
+def run_opt(init_params, fun, opt, max_iter, tol):
+  value_and_grad_fun = optax.value_and_grad_from_state(fun)
+
+  def step(carry):
+    params, state = carry
+    value, grad = value_and_grad_fun(params, state=state)
+    updates, state = opt.update(grad, state, params, value=value, grad=grad, value_fn=fun)
+    params = optax.apply_updates(params, updates)
+    return params, state
+
+  def continuing_criterion(carry):
+    _, state = carry
+    iter_num = otu.tree_get(state, "count")
+    grad = otu.tree_get(state, "grad")
+    err = otu.tree_l1_norm(grad)
+    return (iter_num == 0) | ((iter_num < max_iter) & (err >= tol))
+
+  init_carry = (init_params, opt.init(init_params))
+  final_params, final_state = jax.lax.while_loop(continuing_criterion, step, init_carry)
+  return final_params, final_state
+
+
+class InfoState(NamedTuple):
+  iter_num: Union[np.number, np.ndarray, jax.Array]
+
+
+def print_info():
+  def init_fn(params):
+    del params
+    return InfoState(iter_num=0)
+
+  def update_fn(updates, state, params, *, value, grad, **extra_args):
+    del params, extra_args
+
+    jax.debug.print(
+      "Iteration: {i}, Value: {v}, Gradient norm: {e}",
+      i=state.iter_num,
+      v=value,
+      e=otu.tree_l1_norm(grad),
+    )
+    return updates, InfoState(iter_num=state.iter_num + 1)
+
+  return optax.GradientTransformationExtraArgs(init_fn, update_fn)
+
+
+data, data_f = autohf.lattice_hf(
+  H,
+  settings=hf_settings | dict(opt_method="grad", steps=-1),
+)
+
+rng = np.random.default_rng(hf_settings["seed"])
+fun = data_f["energy_func"]
+init_params = data["state"]
+init_params += rng.normal(scale=0.001, size=init_params.shape)
+opt = optax.chain(print_info(), optax.lbfgs())
+print(
+  f"Initial value: {fun(init_params):.2e} "
+  f"Initial gradient norm: {otu.tree_l2_norm(jax.grad(fun)(init_params)):.2e}"
+)
+final_params, _ = run_opt(init_params, fun, opt, max_iter=hf_settings["steps"], tol=0.001)
+E_final = fun(final_params)
+print(
+  f"Final value: {E_final:.2e}, "
+  f"Final gradient norm: {otu.tree_l2_norm(jax.grad(fun)(final_params)):.2e}"
+)
+
+
+print("=================")
+print("LBFGS:       \t", E_lbfgs)
+print("Grad:        \t", E_grad)
+print("custom lbfgs:\t", E_final)

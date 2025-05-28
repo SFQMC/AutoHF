@@ -42,19 +42,16 @@ N = Nx * Ny
 T_, pin = makeTPin(Nx, Ny, h_pin)
 T_up, T_dn = T_ + np.diag(pin), T_ - np.diag(pin)
 
-settings = {"L": (Nx, Ny)}  # change to shape?
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=(T_up, T_dn), U=1.5)
+H = autohf.AutoHFHamiltonian(T=(T_up, T_dn), U=1.5)
 
 hf_settings = {
   "verbose": False,
-  "numSteps": 100,
+  "steps": 100,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": 4,
+  "batch_size": 4,
   "gpu": False,
-  "nelec": (7, 7),  # should this be moved?
-  # "dumpTrials"
+  "nelec": (7, 7),
 }
 autohf.lattice_hf(
   H,

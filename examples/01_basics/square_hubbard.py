@@ -34,55 +34,29 @@ def makeT(Nx, Ny, xperiodic=True, yperiodic=True):
 
 #### Define Parameters
 Nx, Ny = 4, 4
-U = 8.5
+U = 1.5
 Ne = 7
-numSteps = 100
-numTrials = 32
-output_base = "autohf_output"
+steps = 100
+batch_size = 4
+
 hf_settings = {
   "verbose": False,
-  "numSteps": numSteps,
+  "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": numTrials,
+  "batch_size": batch_size,
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": False,
-  "output": output_base + "_0.pkl",
-  "dumpTrials": True,  # needed to convert from SD_ROT to SD
-  "seed": 42,
 }
 
 #### Setup calculation
 N = Nx * Ny
 T = makeT(Nx, Ny)
 
-settings = {"L": (Nx, Ny)}  # change to shape?
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=U)
+H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
 autohf.lattice_hf(
   H,
   settings=hf_settings,
-)
-
-
-hf_settings = {
-  "verbose": False,
-  "numSteps": numSteps,
-  "opt_method": "lbfgs",
-  "ansatz": "SD",
-  "riemannian": True,
-  "numTrials": numTrials // 2,  # pick the best half
-  "gpu": False,
-  "nelec": (Ne, Ne),
-  "noncollinear": False,
-  "output": output_base + "_1.pkl",
-  "seed": 1234,
-}
-autohf.lattice_hf(
-  H,
-  settings=hf_settings,
-  start_from=output_base + "_0.pkl",
-  jaxoptargs=dict(tol=1e-14),  # secret sauce
 )

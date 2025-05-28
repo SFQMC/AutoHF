@@ -1,6 +1,7 @@
 import time
 import enum
 from types import SimpleNamespace
+import warnings
 
 
 class RepOptions(enum.Enum):
@@ -63,6 +64,13 @@ def process_args(args_dict: dict = None, display: bool = True) -> SimpleNamespac
                   the value in `args_dict` takes precendence.
 
   """
+  _old_args = dict(
+    numTrials="batch_size",
+    trials="batch_size",
+    numSteps="steps",
+    dumpTrials="dump_batch",
+    dump_trials="dump_batch",
+  )
   _args = dict(
     noncollinear=False,
     gpu=False,
@@ -73,18 +81,28 @@ def process_args(args_dict: dict = None, display: bool = True) -> SimpleNamespac
     riemannian=False,
     seed=round(time.time()),
     eta=0.1,
-    numSteps=100,
-    numTrials=1,
+    steps=100,
+    batch_size=1,
     plot=False,
     verbose=False,
     output=None,
-    dumpTrials=False,
+    dump_batch=False,
     measure_spin=False,
     random_initial_phi0=False,
     state0_scale=0.01,
   )
 
   if args_dict is not None:
+    for key in args_dict:
+      if key in _old_args:
+        # deprecations are hidden by default, lets be a bit loud
+        print(f'"{key}" is deprecated, please use "{_old_args[key]}" instead')
+        warnings.warn(
+          f"{key} is deprecated, please use {_old_args[key]} instead",
+          DeprecationWarning,
+          stacklevel=2,
+        )
+        _args[_old_args[key]] = args_dict[key]
     for key in _args.keys():
       if key in args_dict:
         _args[key] = args_dict[key]

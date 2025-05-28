@@ -7,8 +7,6 @@ from jax import config
 config.update("jax_enable_x64", True)
 
 import numpy as np
-import jax.numpy as jnp
-import jax
 # import matplotlib.pyplot as plt
 
 
@@ -46,52 +44,22 @@ hops = (np.array([ 0,  0,  0,  0,  0,  0,  1,  1,  1,  1,  1,  1,  2,  2,  2,  2
 
 #### Define Parameters
 Nx, Ny = 6, 6
-U = 4
+U = 8
 Ne = 18
-numSteps = 2000
-numTrials = 4
+steps = 2000
+batch_size = 4
 
 hf_settings = {
   "verbose": False,
-  "numSteps": numSteps,
+  "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": numTrials,
+  "batch_size": batch_size,
   "gpu": False,
   "nelec": (Ne, Ne),
   "noncollinear": True,
-  "state0_scale": 0.01,
-  "seed": 1234,
+  "state0_scale": 0.001,  # start close to U=0
 }
-
-
-# Build a lagrange multiplier for total Sz
-# We'll use this so that our energy is E+lambda*|\sum_i Sz_i|^2+100
-# Importante note: as an example, let's shift the energy
-# so we understand when its the special loss vs real energy
-lam = 10.0
-
-
-def Esz2(state, rdms):
-  r_uu, r_dd = rdms[0], rdms[1]
-  return lam * jnp.abs(jnp.sum(r_uu.diagonal() - r_dd.diagonal())) ** 2 + 100
-
-
-##
-## We'll do the following steps:
-## 1. run a calculation with no steps to get an energy function
-##    because our energy function will really be a loss,
-##    polluted with the lagrange multiplier
-##
-## 2. For illustration, we'll run without the multiplier,
-##    to see how the the GHF state can rotate arbitrarily
-##    You may naturally do this step in order to realize
-##    the state needs constraining more explicitly
-##
-## 3. We run AutoHf with the custom energy term
-##
-## 4. Compare 2 and 3
-##
 
 #### Setup calculation
 N = Nx * Ny
@@ -99,44 +67,9 @@ assert Nx == 6 and Ny == 6  # harded coded here
 T = np.zeros((N, N))
 T[hops] = -1
 
-settings = {"L": (Nx, Ny)}
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=U)
+H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
-####### Step 1 ######
-# First get energy function
-temp_settings = hf_settings | {"numSteps": -1}
-data, data_functions = autohf.lattice_hf(
-  H,
-  settings=temp_settings,
-  suppress_logo=True,  # quiet mode
-)
-energy_func = data_functions["energy_func"]
-
-####### Step 2 ######
-# run with default settings, no extra term
-data, data_functions = autohf.lattice_hf(
+autohf.lattice_hf(
   H,
   settings=hf_settings,
 )
-
-final_rdm = data_functions["makeRDMs"](data["state"])
-r_uu, r_dd = final_rdm[:N, :N], final_rdm[N:, N:]
-
-####### Step 3 ######
-# run with addition term
-# for illustration, energy is shifted by 100
-data_sz, data_functions_sz = autohf.lattice_hf(
-  H,
-  settings=hf_settings,
-  custom_energy_term=Esz2,
-)
-
-final_rdm_sz = data_functions_sz["makeRDMs"](data_sz["state"])
-r_uu_sz, r_dd_sz = final_rdm_sz[:N, :N], final_rdm_sz[N:, N:]
-
-####### Step 4 ######
-print("True energy:        ", energy_func(data["state"]))
-print("True energy w/ term:", energy_func(data_sz["state"]))
-print("Final sz:        ", np.sum(r_uu.diagonal() - r_dd.diagonal()))
-print("Final sz w/ term:", np.sum(r_uu_sz.diagonal() - r_dd_sz.diagonal()))

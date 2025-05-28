@@ -36,43 +36,36 @@ def makeT(Nx, Ny, xperiodic=True, yperiodic=True):
 Nx, Ny = 4, 4
 U = 1.5
 Ne = 7
-numSteps = 100
-numTrials = 4
+steps = 100
+batch_size = 4
 
 hf_settings = {
   "verbose": False,
-  "numSteps": numSteps,
+  "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": numTrials,
+  "batch_size": batch_size,
   "gpu": False,
-  "nelec": (Ne, Ne),
+  "nelec": (6, 2),
   "noncollinear": False,
-  "output": "autohf_wfn.pkl",
 }
 
 #### Setup calculation
 N = Nx * Ny
 T = makeT(Nx, Ny)
 
-settings = {"L": (Nx, Ny)}  # change to shape?
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=U)
+H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
-# Standard lbfgs
-data, data_f = autohf.lattice_hf(
+data, data_F = autohf.lattice_hf(
   H,
   settings=hf_settings,
 )
 
-# Basin Hopping via scipy
-data, data_f = autohf.lattice_hf(
-  H,
-  settings=hf_settings | dict(opt_method="basin"),
+data, data_F = autohf.lattice_hf(
+  H, settings=hf_settings | {"ansatz": "SD", "riemannian": True}, restart_from=(data, data_F)
 )
 
-# Gradient Descent via optax
-data, data_f = autohf.lattice_hf(
-  H,
-  settings=hf_settings | dict(opt_method="grad"),
-)
+print([x.shape for x in data["orbitals"]])
+rdms = data_F["makeRDMs"](data["state"])
+print("<Sz> =", np.round((rdms[0].diagonal() - rdms[1].diagonal()).sum() / 2, 4))
+print("<n> =", np.round((rdms[0].diagonal() + rdms[1].diagonal()).sum(), 4))

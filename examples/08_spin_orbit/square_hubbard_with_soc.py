@@ -34,29 +34,42 @@ def makeT(Nx, Ny, xperiodic=True, yperiodic=True):
 
 #### Define Parameters
 Nx, Ny = 4, 4
+M = 0.15
 U = 1.5
 Ne = 7
-numSteps = 100
-numTrials = 4
+steps = 100
+batch_size = 4
 
 hf_settings = {
   "verbose": False,
-  "numSteps": numSteps,
+  "steps": steps,
   "opt_method": "lbfgs",
   "ansatz": "SD_ROT",
-  "numTrials": numTrials,
+  "batch_size": batch_size,
   "gpu": False,
   "nelec": (Ne, Ne),
-  "noncollinear": False,
+  "noncollinear": True,
 }
 
 #### Setup calculation
 N = Nx * Ny
 T = makeT(Nx, Ny)
 
-settings = {"L": (Nx, Ny)}  # change to shape?
-H = autohf.hamiltonian.AutoHFHamiltonian(settings=settings)
-H.add_terms(T=T, U=U)
+# Convert to GHF form
+T_ghf = np.array(autohf.tools.uhf_to_ghf([T, T]))  # returns jax
+# add M cdag_up c_dn
+for i in range(N):
+  T_ghf[i, i + N] = M
+  T_ghf[i + N, i] = M
+
+# check legal
+assert np.allclose(T_ghf, T_ghf.conj().T)
+
+# Because this is GHF we need to pass L so that we get the correct
+# N can also be passed, which would be N=T_ghf.shape[0]//2
+#
+# For GHF we either pass (T_ghf,) or a (1,2N,2N) array
+H = autohf.AutoHFHamiltonian(settings={"L": (Nx, Ny)}, T=(T_ghf,), U=U)
 
 autohf.lattice_hf(
   H,
