@@ -4,10 +4,13 @@ import numpy as np
 import scipy.linalg
 import autohf
 
-mol = pyscf.M(atom = """
+mol = pyscf.M(
+  atom="""
     N 0 0 0.5488
     N 0 0 -0.5488
-""", basis="cc-pvdz")
+""",
+  basis="cc-pvdz",
+)
 
 onebody = mol.intor("int1e_kin") + mol.intor("int1e_nuc")
 overlap = mol.intor("int1e_ovlp")
@@ -18,17 +21,19 @@ X = afqmctools.utils.linalg.get_ortho_ao_mol(overlap)
 
 norb = onebody.shape[0]
 
-cholesky_operators = afqmctools.utils.linalg.modified_cholesky_direct(eri.reshape(norb**2, norb**2), tol=1e-4, verbose=False).reshape(-1, norb, norb)
+cholesky_operators = afqmctools.utils.linalg.modified_cholesky_direct(
+  eri.reshape(norb**2, norb**2), tol=1e-4, verbose=False
+).reshape(-1, norb, norb)
 
-onebody = X.T@onebody@X
-cholesky_operators = 1j*np.einsum("ij,njk,kl->nil", X.T, cholesky_operators, X)
+onebody = X.T @ onebody @ X
+cholesky_operators = 1j * np.einsum("ij,njk,kl->nil", X.T, cholesky_operators, X)
 
 
-onebody += 0.5*np.einsum("nij,njk", cholesky_operators, cholesky_operators).real
+onebody += 0.5 * np.einsum("nij,njk", cholesky_operators, cholesky_operators).real
 
 # double along spin dimension
 cholesky_operators = np.stack([cholesky_operators, cholesky_operators], axis=1)
-onebody = np.stack([onebody,onebody], axis=0)
+onebody = np.stack([onebody, onebody], axis=0)
 
 
 mol.UHF.run()
@@ -52,8 +57,15 @@ hf_settings = {
   "seed": 1234,
 }
 
+
 def molecular_energy(state, rdms):
-  return autohf.terms.cholesky.hf_onebody(rdms, onebody) + autohf.terms.cholesky.hf_cholesky(rdms, cholesky_operators) + nuclear_repulsion
+  return (
+    autohf.terms.cholesky.hf_onebody(rdms, onebody)
+    + autohf.terms.cholesky.hf_cholesky(rdms, cholesky_operators)
+    + nuclear_repulsion
+  )
 
 
-data, data_functions = autohf.lattice_hf(H, settings=hf_settings, custom_energy_term=molecular_energy)
+data, data_functions = autohf.lattice_hf(
+  H, settings=hf_settings, custom_energy_term=molecular_energy
+)
