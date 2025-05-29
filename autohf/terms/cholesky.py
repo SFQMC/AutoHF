@@ -7,6 +7,8 @@ Per convention, if rdms have only a single spin component, they are considered G
 
 import jax.numpy as jnp
 
+known_terms = ["onebody", "cholesky"]
+
 
 def hf_onebody(rdms, onebody_operator):
   """Calculate the UHF expectation value of a onebody operator. The operator can be either spin × basis × basis or basis × basis shaped."""
