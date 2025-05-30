@@ -160,6 +160,7 @@ def loadStates(input_, args, nelec):
     ## if originally not SDC and now is SDC
     if args.ansatz == "SDC":
       state0 = jnp.stack([state0.real, state0.imag])
+      state0_ref = jnp.stack([state0_ref.real, state0_ref.imag])
   print("Loaded state with energy:", original_data["E"])
 
   return state0, state0_ref, phi0
