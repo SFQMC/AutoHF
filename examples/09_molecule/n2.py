@@ -1,6 +1,14 @@
 import importlib
 import sys
 
+import os
+
+os.environ["JAX_PLATFORMS"] = "cpu"
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+from jax import config
+
+config.update("jax_enable_x64", True)
+
 if importlib.util.find_spec("afqmctools") is None:
   print("afqmctools is required to run this example, please install it")
   sys.exit(0)
@@ -19,7 +27,7 @@ mol = pyscf.M(
     N 0 0 0.5488
     N 0 0 -0.5488
 """,
-  basis="cc-pvdz",
+  basis="sto-3g",
 )
 
 onebody = mol.intor("int1e_kin") + mol.intor("int1e_nuc")
@@ -30,9 +38,11 @@ nuclear_repulsion = mol.energy_nuc()
 X = afqmctools.utils.linalg.get_ortho_ao_mol(overlap)
 
 norb = onebody.shape[0]
+print(f"{norb=}")
 
+chol_tol = 1e-8
 cholesky_operators = afqmctools.utils.linalg.modified_cholesky_direct(
-  eri.reshape(norb**2, norb**2), tol=1e-4, verbose=False
+  eri.reshape(norb**2, norb**2), tol=chol_tol, verbose=False
 ).reshape(-1, norb, norb)
 
 onebody = X.T @ onebody @ X
@@ -46,13 +56,13 @@ cholesky_operators = np.stack([cholesky_operators, cholesky_operators], axis=1)
 onebody = np.stack([onebody, onebody], axis=0)
 
 
-mol.UHF.run()
+mf = mol.UHF.run()
 
 
 T = np.zeros((norb, norb))
 
 H = autohf.AutoHFHamiltonian(T=(T, T), U=0)
-Ne = 7
+nelec = np.sum(mf.get_occ(), axis=1).astype(int)
 
 hf_settings = {
   "verbose": False,
@@ -61,10 +71,11 @@ hf_settings = {
   "ansatz": "SD_ROT",
   "batch_size": 4,
   "gpu": False,
-  "nelec": (Ne, Ne),
+  "nelec": nelec,
   "noncollinear": False,
   "state0_scale": 0.01,
   "seed": 1234,
+  "measure_spin": True,
 }
 
 
@@ -79,3 +90,8 @@ def molecular_energy(state, rdms):
 data, data_functions = autohf.lattice_hf(
   H, settings=hf_settings, custom_energy_term=molecular_energy
 )
+rounding_level = -np.log10(chol_tol).astype(int)
+# recall we have a cholesky cutoff, so we will be slightly off in evaluating the energy
+# practically this isn't a huge issue
+print("PySCF energy:", np.round(mf.energy_tot(), rounding_level))
+print("AutoHF      :", np.round(data["E"], rounding_level))
