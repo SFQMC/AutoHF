@@ -1,0 +1,72 @@
+import pytest
+import numpy as np
+import autohf.terms.uhf as uhf
+import autohf.terms.cholesky as cholesky
+import autohf.tools
+
+
+def rng_slater_det(rng, dim, num_elec):
+  return [
+    np.linalg.qr(rng.standard_normal((dim, n)) + 1.0j * rng.standard_normal((dim, n)))[0]
+    for n in num_elec
+  ]
+
+
+class TestCholeskyTerms:
+  rng = np.random.default_rng(42)
+
+  def test_onebody(self):
+    dim = 10
+    rng = self.rng
+
+    sd = rng_slater_det(rng, dim, (2, 3))
+
+    A = rng.standard_normal((dim, dim))
+
+    expected = sum(sum(s[:, j].T.conj() @ A @ s[:, j] for j in range(s.shape[1])) for s in sd)
+
+    assert np.allclose(expected, cholesky.hf_onebody(autohf.tools.sd_to_rdm(sd), A))
+
+    A = rng.standard_normal((2, dim, dim))
+
+    expected = sum(
+      sum(s[:, j].T.conj() @ A[σ, :, :] @ s[:, j] for j in range(s.shape[1]))
+      for σ, s in enumerate(sd)
+    )
+
+    assert np.allclose(expected, cholesky.hf_onebody(autohf.tools.sd_to_rdm(sd), A))
+
+  def test_cholesky(self):
+    dim = 10
+    rng = self.rng
+
+    # single particle
+    A = rng.standard_normal((10, 2, dim, dim))
+    sd = rng_slater_det(rng, dim, (1, 0))
+    rdm = autohf.tools.sd_to_rdm(sd)
+
+    expected = -0.5 * cholesky.hf_onebody(rdm, np.einsum("nsij,nsjk->sik", A, A))
+
+    assert np.allclose(expected, cholesky.hf_cholesky(rdm, A))
+
+    # hubbard spin-channel
+
+    U = np.zeros([dim, 2, dim, dim])
+    for σ in range(2):
+      for i in range(dim):
+        U[i, σ, i, i] = 1 - 2 * σ
+
+    nelec = (3, 2)
+    sd = rng_slater_det(rng, dim, nelec)
+    rdm = autohf.tools.sd_to_rdm(sd)
+    shift = -sum(nelec) / 2
+
+    assert np.allclose(uhf.uhf_U(rdm, np.arange(dim)), cholesky.hf_cholesky(rdm, U) - shift)
+    # hubbard charge-channel
+
+    U = np.zeros([dim, 2, dim, dim], dtype=np.complex128)
+    for σ in range(2):
+      for i in range(dim):
+        U[i, σ, i, i] = 1.0j
+
+    assert np.allclose(uhf.uhf_U(rdm, np.arange(dim)), cholesky.hf_cholesky(rdm, U) + shift)

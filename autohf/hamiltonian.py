@@ -7,6 +7,9 @@ import jax.numpy as jnp
 
 from .terms.uhf import known_terms as uhf_known_terms
 from .terms.ghf import known_terms as ghf_known_terms
+from .terms.cholesky import known_terms as cholesky_known_terms
+
+known_terms = uhf_known_terms + ghf_known_terms + cholesky_known_terms
 
 # optionally import afqmctools
 if importlib.util.find_spec("afqmctools") is not None:
@@ -182,7 +185,7 @@ class AutoHFHamiltonian:
 
   def set(self, key, value):
     # TODO: filter based on allowed keys
-    if key not in uhf_known_terms and key not in ghf_known_terms:
+    if key not in known_terms:
       raise ValueError(f"Unknown term {key}")
 
     self._terms[key] = value
