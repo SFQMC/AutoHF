@@ -50,19 +50,21 @@ class SlaterType(enum.Enum):
 def process_args(args_dict: dict = None, display: bool = True) -> SimpleNamespace:
   """
   Processes autoHF arguments into a single namespace using
-     default values if not specified. Accepts arguments from either
-     a namespace `args`, a dictionary `args_dict`, or a combination.
-     If both are provided and set the same values, the dictionary takes
-     priority. If neither are provided, then a namespace containing default
-     settings is returned.
+  default values if not specified. Accepts arguments from either
+  a namespace `args`, a dictionary `args_dict`, or a combination.
+  If both are provided and set the same values, the dictionary takes
+  priority. If neither are provided, then a namespace containing default
+  settings is returned.
 
-     Will ignore any arguments provided which do not correspond to valid keyword arguments.
+  Will ignore any arguments provided which do not correspond to valid keyword arguments.
 
-  Inputs:
-  - args : a Namespace instance containing arguments (i.e. similar to the output of argparse)
-  - args_dict : a dict contiains arguments. If both `args` and `args_dict` set the same arguement,
+  Parameters
+  ----------
+  args : Namespace 
+    a Namespace instance containing arguments (i.e. similar to the output of argparse)
+  args_dict : dict 
+    a doct contiains arguments. If both `args` and `args_dict` set the same arguement,
                   the value in `args_dict` takes precendence.
-
   """
   _old_args = dict(
     numTrials="batch_size",
