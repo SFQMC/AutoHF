@@ -1,3 +1,13 @@
+import importlib
+import sys
+
+if importlib.util.find_spec("afqmctools") is None:
+  print("afqmctools is required to run this example, please install it")
+  sys.exit(0)
+if importlib.util.find_spec("pyscf") is None:
+  print("pyscf is required to run this example, please install it")
+  sys.exit(0)
+
 import pyscf
 import afqmctools.utils.linalg
 import numpy as np

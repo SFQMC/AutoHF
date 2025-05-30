@@ -5,40 +5,45 @@ import autohf.terms.cholesky as cholesky
 import autohf.tools
 
 
-def rng_slater_det(dim, num_elec):
+def rng_slater_det(rng, dim, num_elec):
   return [
-    np.linalg.qr(np.random.randn(dim, n) + 1.0j * np.random.randn(dim, n))[0] for n in num_elec
+    np.linalg.qr(rng.standard_normal((dim, n)) + 1.0j * rng.standard_normal((dim, n)))[0]
+    for n in num_elec
   ]
 
 
 class TestCholeskyTerms:
+  rng = np.random.default_rng(42)
+
   def test_onebody(self):
     dim = 10
+    rng = self.rng
 
-    sd = rng_slater_det(dim, (2, 3))
+    sd = rng_slater_det(rng, dim, (2, 3))
 
-    A = np.random.randn(dim, dim)
+    A = rng.standard_normal((dim, dim))
 
     expected = sum(sum(s[:, j].T.conj() @ A @ s[:, j] for j in range(s.shape[1])) for s in sd)
 
-    assert np.allclose(expected, cholesky.hf_onebody(autohf.tools.sdToRDM(sd), A))
+    assert np.allclose(expected, cholesky.hf_onebody(autohf.tools.sd_to_rdm(sd), A))
 
-    A = np.random.randn(2, dim, dim)
+    A = rng.standard_normal((2, dim, dim))
 
     expected = sum(
       sum(s[:, j].T.conj() @ A[σ, :, :] @ s[:, j] for j in range(s.shape[1]))
       for σ, s in enumerate(sd)
     )
 
-    assert np.allclose(expected, cholesky.hf_onebody(autohf.tools.sdToRDM(sd), A))
+    assert np.allclose(expected, cholesky.hf_onebody(autohf.tools.sd_to_rdm(sd), A))
 
   def test_cholesky(self):
     dim = 10
+    rng = self.rng
 
     # single particle
-    A = np.random.randn(10, 2, dim, dim)
-    sd = rng_slater_det(dim, (1, 0))
-    rdm = autohf.tools.sdToRDM(sd)
+    A = rng.standard_normal((10, 2, dim, dim))
+    sd = rng_slater_det(rng, dim, (1, 0))
+    rdm = autohf.tools.sd_to_rdm(sd)
 
     expected = -0.5 * cholesky.hf_onebody(rdm, np.einsum("nsij,nsjk->sik", A, A))
 
@@ -52,8 +57,8 @@ class TestCholeskyTerms:
         U[i, σ, i, i] = 1 - 2 * σ
 
     nelec = (3, 2)
-    sd = rng_slater_det(dim, nelec)
-    rdm = autohf.tools.sdToRDM(sd)
+    sd = rng_slater_det(rng, dim, nelec)
+    rdm = autohf.tools.sd_to_rdm(sd)
     shift = -sum(nelec) / 2
 
     assert np.allclose(uhf.uhf_U(rdm, np.arange(dim)), cholesky.hf_cholesky(rdm, U) - shift)

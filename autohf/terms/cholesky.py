@@ -11,7 +11,8 @@ known_terms = ["onebody", "cholesky"]
 
 
 def hf_onebody(rdms, onebody_operator):
-  """Calculate the UHF expectation value of a onebody operator. The operator can be either spin × basis × basis or basis × basis shaped."""
+  """Calculate the UHF expectation value of a onebody operator.
+  The operator can be either spin × basis × basis or basis × basis shaped."""
 
   return jnp.sum(jnp.stack(rdms) * onebody_operator)
 
