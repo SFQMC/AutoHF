@@ -30,10 +30,11 @@ class TestSolverRestart:
 
     assert np.allclose(results[0]["E"], results_restart[0]["E"])
 
-  @pytest.mark.parametrize("ansatz", ["SD_ROT", "DIAG", "SD_ROTC"])
+  @pytest.mark.parametrize("ansatz", ["SD_ROT", "DIAG", "SD_ROTC", "SD"])
+  @pytest.mark.parametrize("final_ansatz", ["SD", "SDC"])
   @pytest.mark.parametrize("nelec", [(3, 3), (6, 2)])
   @pytest.mark.parametrize("nc", [False, True])
-  def test_restart_convert(self, ansatz, nelec, nc, hubbard_4x4):
+  def test_restart_convert(self, ansatz, final_ansatz, nelec, nc, hubbard_4x4):
     hf_settings = dict(
       ansatz=ansatz,
       steps=-1,
@@ -46,7 +47,9 @@ class TestSolverRestart:
 
     results = lattice_hf(hubbard_4x4, hf_settings)
     results_restart = lattice_hf(
-      hubbard_4x4, hf_settings | {"ansatz": "SD", "batch_size": 2, "seed": 42}, start_from=results
+      hubbard_4x4,
+      hf_settings | {"ansatz": final_ansatz, "batch_size": 2, "seed": 42},
+      start_from=results,
     )
 
     assert np.allclose(results[0]["E"], results_restart[0]["E"])
