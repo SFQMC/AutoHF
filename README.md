@@ -36,3 +36,29 @@ $ . venv/bin/activate
 $ pip install .
 ```
 
+## Compiling the Documentation
+
+To compile the documentation, you must install Sphinx.
+You can either do this directly via pip as,
+
+```bash
+$ pip install sphinx sphinxcontrib-bibtex sphinx-rtd-theme myst_nb sphinx-autodoc-typehints numpydoc
+```
+
+or, when installing autohf, you can install the `DOCS` optional dependency as,
+
+```bash
+$ pip install .[DOCS]
+```
+
+Once sphinx is installed, you can compile the docs using `make` with,
+
+```bash
+$ cd /path/to/autohf/docs
+$ make html
+```
+
+which will generate the documentation as html in the directory, `/path/to/autohf/docs/_build/html`.
+You can view the documentation locally in a web browser using the url, `file:///path/to/autohf/docs/_build/html/index.html`
+(where you must replace `/path/to/autohf` with your local path to `autohf`.
+
