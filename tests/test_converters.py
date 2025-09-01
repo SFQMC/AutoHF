@@ -8,7 +8,7 @@ from afqmctools.hamiltonian.model.builder import HamiltonianBuilder
 from autohf.converters import AutoHFHamiltonian
 
 
-class TestSFQMCHamiltonians:
+class TestSAFIREHamiltonians:
   @pytest.mark.dev
   @pytest.mark.parametrize(
     "t,U,U1,U2,J",
