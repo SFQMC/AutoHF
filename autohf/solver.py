@@ -166,7 +166,7 @@ def loadStates(input_, args, nelec):
   return state0, state0_ref, phi0
 
 
-def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.00001, Phi=None):
+def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.01, Phi=None):
   """
   construct a random Slater determinant as
 
@@ -195,7 +195,7 @@ def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.
   X = rng.random(shape)
   X = 0.5 * (X + X.T)
 
-  Phi = np.exp(-1j * delta * X) @ Phi
+  Phi = jexpm(-1j * delta * X) @ Phi
 
   if spin_symm == SlaterType.NONCOLLINEAR:
     return jnp.stack([Phi])
