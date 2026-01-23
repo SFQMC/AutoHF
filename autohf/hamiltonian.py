@@ -1,4 +1,5 @@
 import importlib
+import copy
 
 import numpy as np
 from .options import RepOptions, SlaterType
@@ -47,8 +48,8 @@ class AutoHFHamiltonian:
       self._init_from_afqmctools(source)
     elif isinstance(source, AutoHFHamiltonian):
       # TODO copy constructor
-      self.terms = source.terms
-      self.one_body = source.one_body
+      self._terms = copy.deepcopy(source._terms)
+      self._one_body = copy.deepcopy(source._one_body)
       self.Nx, self.Ny = source.Nx, source.Ny
       self.N = source.N
       self.Nbands = source.Nbands
