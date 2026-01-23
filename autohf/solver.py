@@ -666,7 +666,8 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     # using ideas from https://arxiv.org/abs/2110.08986
     # the only manifold implemented is a Stiefel manifold (SD/SDC)
     # check that we are SD only
-    assert rep_type in [RepOptions.SLATERDET, RepOptions.SLATERDETC]
+    if rep_type not in [RepOptions.SLATERDET, RepOptions.SLATERDETC]:
+      raise NotImplementedError("Riemannian optimization only implemented for SD/SDC representations")
     beta = kwargs.get("beta", 1e-8)  # TODO: calc this
     nelec = kwargs["nelec"]
     print(f"Using Riemannian CD mode, {beta=}")
