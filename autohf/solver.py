@@ -908,7 +908,10 @@ def lattice_hf(
       shiftsj = rng.normal(scale=state0_scale / 100, size=state0.shape)
     for i, p in enumerate(phi0):
       x, y = p.shape
-      state0[:, i, 0:x, 0:y] += shifts[:, i, 0:x, :y]
+      if initial_guess is not None: # add noise to initial guess if provided
+        state0[:, i, 0:x, 0:y] += p + shifts[:, i, 0:x, :y]
+      else:
+        state0[:, i, 0:x, 0:y] += shifts[:, i, 0:x, :y]
       state0_ref[i, 0:x, 0:y] = p[:, :]
       if force_complex:
         state0[:, i, 0:x, 0:y] += shiftsj[:, i, 0:x, :y]
