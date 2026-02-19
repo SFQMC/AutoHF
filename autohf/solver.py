@@ -2,6 +2,7 @@ import os
 import time
 
 import numpy as np
+import h5py as h5
 
 from jax import config
 
@@ -52,13 +53,67 @@ def _toarrayornot(arr):
   return arr
 
 
+def _save_to_h5(data: dict, fname: str):
+  with h5.File(fname, "w") as f:
+      # iterate over data and save all arrays as datasets
+      for key, value in data.items():
+        if isinstance(value, (np.ndarray, jnp.ndarray)):
+          f.create_dataset(key, data=value)
+        elif key=="args":
+          # for namespace objects, save attributes in a group
+          grp = f.create_group(key)
+          for attr_name, attr_value in vars(value).items():
+            if isinstance(attr_value, (np.ndarray, jnp.ndarray)):
+              grp.create_dataset(attr_name, data=attr_value)
+            else:
+              try:
+                grp.attrs[attr_name] = attr_value
+              except (TypeError, ValueError):
+                # If the attribute can't be saved, convert to string
+                grp.attrs[attr_name] = str(attr_value)
+        else:
+          # for non-array data, save as an attribute
+          try:
+            f.attrs[key] = value
+          except (TypeError, ValueError):
+            # If the value can't be saved as attribute, convert to string
+            f.attrs[key] = str(value)
+
+def _load_from_h5(fname: str) -> dict:
+  """Load data from HDF5 file created by _save_to_h5"""
+  from argparse import Namespace
+
+  data = {}
+  with h5.File(fname, "r") as f:
+    # Load root-level attributes
+    for key, value in f.attrs.items():
+      data[key] = value
+
+    # Load datasets and groups
+    for key in f.keys():
+      item = f[key]
+      if isinstance(item, h5.Dataset):
+        # Regular dataset - load as numpy array
+        data[key] = item[:]
+      elif key == "args" and isinstance(item, h5.Group):
+        # Group - reconstruct as namespace object
+        ns = Namespace()
+        # Load attributes from the group
+        for attr_name, attr_value in item.attrs.items():
+          setattr(ns, attr_name, attr_value)
+        # Load datasets from the group
+        for subkey in item.keys():
+          setattr(ns, subkey, item[subkey][:])
+        data[key] = ns
+
+  return data
+
 def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dump_batch):
   """Save all the trial states in an extra file
   Will automatically save based on npy/pkl/pickle file extension
   Does nothing if fname is empty/None
   """
   import pickle
-
   Es = np.array(energies)
   best = np.argmin(Es)
   o = orbFunc(states[best])
@@ -75,16 +130,20 @@ def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dump_batch):
   if dump_batch:
     orbs = [np.array(o) for o in jax.vmap(orbFunc)(states)]
     data["all_orbitals"] = orbs
-
   if fname == "" or fname is None:
     return data
   if fname[-4:] == ".npy":
     print("Saving states as npy:", fname)
     np.save(fname, [np.array(o) for o in orbs])
   elif fname[-3:] == ".h5":
-    raise NotImplementedError("Dumping states to h5 not yet supported")
+    print("Saving states as h5:", fname)
+    _save_to_h5(data, fname)
   elif fname[-4:] == ".pkl" or fname[-7:] == ".pickle":
     print("Saving Pickle:", fname)
+    warnings.warn("Saving states with pickle extension. Make sure this is intentional, \n"
+                  "as unpickling can be unsafe if the file is from an untrusted source.\n"
+                  "consider using the h5 extension instead, which is safer and more portable.",
+                  RuntimeWarning, stacklevel=2)
     with open(fname, "wb") as f:
       pickle.dump(data, f)
   else:
@@ -108,11 +167,17 @@ def loadStates(input_, args, nelec):
     # TODO: support SD/SDC ->SD_ROT
     fname = input_
     print(f"Loading saved data from {fname}")
-    if fname[-4:] != ".pkl" and fname[-7:] != ".pickle":
+    if fname.endswith(".h5"):
+      original_data = _load_from_h5(fname)
+    elif fname[-4:] != ".pkl" and fname[-7:] != ".pickle":
       print("Assuming pkl/pickle format, other formats currently unsupported")
-
-    with open(fname, "rb") as f:
-      original_data = pickle.load(f)
+      warnings.warn("The pickle format is deprecated and can be unsafe if the file \n"
+                    "is from an untrusted source. Consider using the h5 format instead,\n"
+                    "which is safer and more portable.", RuntimeWarning, stacklevel=2)
+      warnings.warn("Be careful with loading pickle files from untrusted sources!",
+                    RuntimeWarning, stacklevel=2)
+      with open(fname, "rb") as f:
+        original_data = pickle.load(f)
   elif isinstance(input_, tuple) or isinstance(input_, list):
     original_data = input_[0]
   elif isinstance(input_, dict):
