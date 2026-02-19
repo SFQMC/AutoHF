@@ -96,11 +96,13 @@ class TestConvertInitialSlaterDet:
     
     result = convertInitialSlaterDet(initial_guess, nelec, spin_symm=SlaterType.NONCOLLINEAR)
     
-    # Result should be a 2D array (no leading dimension of 1)
-    assert result.shape == (nmo, n_total)
+    # Result should be a 1-tuple containing a 2D array
+    assert isinstance(result, tuple)
+    assert len(result) == 1
+    assert result[0].shape == (nmo, n_total)
     
     # Check values match input
-    assert jnp.allclose(result, initial_guess[:, :n_total])
+    assert jnp.allclose(result[0], initial_guess[:, :n_total])
 
   def test_invalid_slater_type(self):
     """Test that invalid SlaterType raises ValueError."""

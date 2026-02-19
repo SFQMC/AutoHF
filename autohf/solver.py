@@ -263,7 +263,7 @@ def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.
   Phi = jexpm(-1j * delta * X) @ Phi
 
   if spin_symm == SlaterType.NONCOLLINEAR:
-    return jnp.stack([Phi])
+    return (Phi,)
   elif spin_symm == SlaterType.COLLINEAR:
     return (Phi[:, : nelec[0]], Phi[:, : nelec[1]])
 
@@ -293,7 +293,7 @@ def constructPhi0(Tlist, N, nelec, spin_symm=SlaterType.COLLINEAR, averageSpins=
       )
     T = Tlist[0]
     _, orbitals = np.linalg.eigh(T)
-    return jnp.stack([orbitals[:, : sum(nelec)]])
+    return (orbitals[:, : sum(nelec)],)
 
   # collinear T version
   assert np.all([T.shape[0] == N for T in Tlist])
@@ -315,7 +315,7 @@ def constructPhi0(Tlist, N, nelec, spin_symm=SlaterType.COLLINEAR, averageSpins=
   elif spin_symm == SlaterType.NONCOLLINEAR:
     # collinear Hamiltonian, NC walkers
     _, orbitals = np.linalg.eigh(np.block([[Tup, np.zeros_like(Tdn)], [np.zeros_like(Tup), Tdn]]))
-    return jnp.stack([orbitals[:, : nelec[0] + nelec[1]]])
+    return (orbitals[:, : nelec[0] + nelec[1]],)
 
 
 ###########################################################################
@@ -484,18 +484,12 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       return Rot
 
     if spin_symm == SlaterType.GHF:
-      # note, phi0 has shape (1,2*N,sum(nelec))
-      # so we pick up the correct (1,) from numpy
-      # broadcasting rules
+      # phi0 is a 1-tuple: (arr,) where arr has shape (2*N, sum(nelec))
       def orbFunc(state):
-        R = makeRot(state[0])
-        orbs = R @ phi0
-        return (orbs[0], orbs[1])
+        return (makeRot(state[0]) @ phi0[0],)
 
       def rdmFunc(state):
-        R = makeRot(state[0])
-        orbs = R @ phi0
-        return sd_to_rdm_noncollinear(orbs)
+        return sd_to_rdm_noncollinear((makeRot(state[0]) @ phi0[0],))
     else:
 
       def orbFunc(state):
@@ -531,18 +525,12 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       return Rot
 
     if spin_symm == SlaterType.GHF:
-      # note, phi0 has shape (1,2*N,sum(nelec))
-      # so we pick up the correct (1,) from numpy
-      # broadcasting rules
+      # phi0 is a 1-tuple: (arr,) where arr has shape (2*N, sum(nelec))
       def orbFunc(state):
-        R = makeRot(state[0])
-        orbs = R @ phi0
-        return (orbs[0],)
+        return (makeRot(state[0]) @ phi0[0],)
 
       def rdmFunc(state):
-        R = makeRot(state[0])
-        orbs = R @ phi0
-        return sd_to_rdm_noncollinear(orbs)
+        return sd_to_rdm_noncollinear((makeRot(state[0]) @ phi0[0],))
     else:
 
       def orbFunc(state):

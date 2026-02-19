@@ -99,8 +99,10 @@ class TestConstructPhi0:
     
     result = constructPhi0([T], N, nelec, spin_symm=SlaterType.NONCOLLINEAR)
     
-    # Should return array with shape (1, 2N, sum(nelec))
-    assert result.shape == (1, 2*N, sum(nelec))
+    # Should return a 1-tuple containing an array of shape (2N, sum(nelec))
+    assert isinstance(result, tuple)
+    assert len(result) == 1
+    assert result[0].shape == (2*N, sum(nelec))
     
     # Should be block diagonal Hamiltonian
     T_block = np.block([[T, np.zeros((N, N))], [np.zeros((N, N)), T]])
@@ -119,8 +121,10 @@ class TestConstructPhi0:
     
     result = constructPhi0([T_nc], N, nelec, spin_symm=SlaterType.NONCOLLINEAR)
     
-    # Should return array with shape (1, 2N, sum(nelec))
-    assert result.shape == (1, 2*N, sum(nelec))
+    # Should return a 1-tuple containing an array of shape (2N, sum(nelec))
+    assert isinstance(result, tuple)
+    assert len(result) == 1
+    assert result[0].shape == (2*N, sum(nelec))
     
     _, eigenvecs = np.linalg.eigh(T_nc)
     assert np.allclose(result[0], eigenvecs[:, :sum(nelec)])
@@ -210,15 +214,10 @@ class TestConstructRandomPhi:
       delta=0.01
     )
     
-    # Should return stacked array with leading dimension 1
-    assert isinstance(result, (tuple, list)) or isinstance(result, (np.ndarray, jnp.ndarray))
-    # Check if it's a tuple (collinear-like) or array (noncollinear)
-    if isinstance(result, tuple):
-      # Collinear output
-      assert len(result) == 2
-    else:
-      # Noncollinear should have shape (1, 2*N, sum(nelec))
-      assert result.shape[0] == 1 or result.shape == (2*N, sum(nelec))
+    # Should return a 1-tuple containing an array of shape (2*N, sum(nelec))
+    assert isinstance(result, tuple)
+    assert len(result) == 1
+    assert result[0].shape == (2*N, sum(nelec))
 
   def test_construct_random_phi_with_initial_phi(self):
     """Test construct_random_Phi with provided initial Phi."""
