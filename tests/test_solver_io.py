@@ -166,13 +166,12 @@ class TestSaveStates:
       loaded = np.load(fname, allow_pickle=True)
       assert loaded is not None
 
-  def test_save_h5_not_implemented(self, mock_solver_data):
+  def test_save_h5(self, mock_solver_data):
     """Test saveStates with .h5 format raises NotImplementedError."""
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_save.h5")
-      
-      with pytest.raises(NotImplementedError, match="h5 not yet supported"):
-        saveStates(
+
+      data = saveStates(
           states=mock_solver_data["states"],
           orbFunc=mock_solver_data["orbFunc"],
           energies=mock_solver_data["energies"],
@@ -416,29 +415,12 @@ class TestLoadStates:
     # SDC should have real and imaginary parts stacked
     assert state0.shape[0] == 2  # [real, imag]
 
-  def test_load_file_without_pkl_extension_warns(self, mock_solver_data, capfd):
+  def test_load_file_unknown_format(self, mock_solver_data, capfd):
     """Test loadStates with non-.pkl file shows warning."""
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_load.dat")
-      
-      # Manually save as pickle with .dat extension
-      data = saveStates(
-        states=mock_solver_data["states"],
-        orbFunc=mock_solver_data["orbFunc"],
-        energies=mock_solver_data["energies"],
-        phi0=mock_solver_data["phi0"],
-        args=mock_solver_data["args"],
-        nelec=mock_solver_data["nelec"],
-        fname=None,
-        dump_batch=False,
-      )
-      
-      with open(fname, "wb") as f:
-        pickle.dump(data, f)
-      
-      # Load
-      loadStates(fname, mock_solver_data["args"], mock_solver_data["nelec"])
-      
-      # Check for warning message
-      captured = capfd.readouterr()
-      assert "Assuming pkl/pickle format" in captured.out
+
+      with pytest.raises(RuntimeError, match="Unknown file extension for restart data"):
+        # Manually save as pickle with .dat extension
+        loadStates(fname, mock_solver_data["args"], mock_solver_data["nelec"])
+
