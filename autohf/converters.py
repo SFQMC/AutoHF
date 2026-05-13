@@ -16,10 +16,9 @@ def convertInitialSlaterDet(initial_guess, Nes, spin_symm=SlaterType.COLLINEAR):
   For Noncollinear Slater determinants:
       simply converts to a jnp array with appropriate dimensions.
   """
-
   if spin_symm == SlaterType.COLLINEAR:
-    return jnp.stack([initial_guess[:, : Nes[0]], initial_guess[:, Nes[0] :]])
+    return (jnp.array(initial_guess[:, : Nes[0]]), jnp.array(initial_guess[:, Nes[0] :]))
   elif spin_symm == SlaterType.NONCOLLINEAR:
-    return jnp.stack([initial_guess[:, : Nes[0] + Nes[1]]])
+    return (jnp.array(initial_guess[:, : Nes[0] + Nes[1]]),)
   else:
-    raise ValueError("Could not convert the given initial guess using SlaterType ", spin_symm)
+    raise ValueError(f"Could not convert the given initial guess using SlaterType {spin_symm}")

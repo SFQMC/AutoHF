@@ -1,11 +1,14 @@
 import pytest
 import numpy as np
+import jax.numpy as jnp
 
 afqmctools = pytest.importorskip("afqmctools")
 from afqmctools.hamiltonian.model.director import HamiltonianDirector
 from afqmctools.hamiltonian.model.builder import HamiltonianBuilder
 
-from autohf.converters import AutoHFHamiltonian
+from autohf.hamiltonian import AutoHFHamiltonian
+from autohf.converters import convertInitialSlaterDet
+from autohf.options import SlaterType
 
 
 class TestSAFIREHamiltonians:
@@ -54,3 +57,59 @@ class TestSAFIREHamiltonians:
             assert np.any([val in term for term in convertedTerm])
       else:
         assert hamil.get(name, None) is None
+
+
+class TestConvertInitialSlaterDet:
+  """Test conversion of initial Slater determinants between formats."""
+
+  def test_collinear_conversion(self):
+    """Test conversion of collinear Slater determinant."""
+    nmo = 10
+    nelec = (3, 4)
+    
+    # Create mock initial guess in afqmctools format: [nmo, nelec[0] + nelec[1]]
+    initial_guess = np.random.randn(nmo, nelec[0] + nelec[1]) + 1j * np.random.randn(nmo, nelec[0] + nelec[1])
+    
+    result = convertInitialSlaterDet(initial_guess, nelec, spin_symm=SlaterType.COLLINEAR)
+    
+    # Result should be a tuple of two arrays
+    assert isinstance(result, tuple)
+    assert len(result) == 2
+    
+    # Check shapes
+    orb_up, orb_dn = result
+    assert orb_up.shape == (nmo, nelec[0])
+    assert orb_dn.shape == (nmo, nelec[1])
+    
+    # Check values match input
+    assert jnp.allclose(orb_up, initial_guess[:, :nelec[0]])
+    assert jnp.allclose(orb_dn, initial_guess[:, nelec[0]:])
+
+  def test_noncollinear_conversion(self):
+    """Test conversion of noncollinear Slater determinant."""
+    nmo = 10
+    nelec = (3, 4)
+    n_total = nelec[0] + nelec[1]
+    
+    # Create mock initial guess
+    initial_guess = np.random.randn(nmo, n_total) + 1j * np.random.randn(nmo, n_total)
+    
+    result = convertInitialSlaterDet(initial_guess, nelec, spin_symm=SlaterType.NONCOLLINEAR)
+    
+    # Result should be a 1-tuple containing a 2D array
+    assert isinstance(result, tuple)
+    assert len(result) == 1
+    assert result[0].shape == (nmo, n_total)
+    
+    # Check values match input
+    assert jnp.allclose(result[0], initial_guess[:, :n_total])
+
+  def test_invalid_slater_type(self):
+    """Test that invalid SlaterType raises ValueError."""
+    nmo = 10
+    nelec = (3, 4)
+    initial_guess = np.random.randn(nmo, nelec[0] + nelec[1])
+    
+    # SlaterType.CLOSED is not valid for conversion
+    with pytest.raises(ValueError, match="Could not convert"):
+      convertInitialSlaterDet(initial_guess, nelec, spin_symm=SlaterType.CLOSED)

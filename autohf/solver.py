@@ -2,6 +2,7 @@ import os
 import time
 
 import numpy as np
+import h5py as h5
 
 from jax import config
 
@@ -20,7 +21,7 @@ import scipy.sparse as sps  # TODO: Remove
 from autohf.interfaces.afqmctools import fail_without_afqmctools, spin_squared, spin_z
 
 
-from .io import read_input_params
+from .io import read_input_params, saveStates, loadStates
 from .tools import sd_to_rdm, sd_to_rdm_noncollinear, create_polarized_func
 from .options import SlaterType, RepOptions, get_ansatz, process_args
 from .rotation_tools import (
@@ -52,121 +53,9 @@ def _toarrayornot(arr):
   return arr
 
 
-def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dump_batch):
-  """Save all the trial states in an extra file
-  Will automatically save based on npy/pkl/pickle file extension
-  Does nothing if fname is empty/None
-  """
-  import pickle
-
-  Es = np.array(energies)
-  best = np.argmin(Es)
-  o = orbFunc(states[best])
-  data = {
-    "state": states[best],
-    "Es": Es,
-    "E": Es[best],
-    "orbitals": o,
-    "args": args,
-    "phi0": phi0,
-    "states": np.array(states),
-    "nelec": nelec,
-  }
-  if dump_batch:
-    orbs = [np.array(o) for o in jax.vmap(orbFunc)(states)]
-    data["all_orbitals"] = orbs
-
-  if fname == "" or fname is None:
-    return data
-  if fname[-4:] == ".npy":
-    print("Saving states as npy:", fname)
-    np.save(fname, [np.array(o) for o in orbs])
-  elif fname[-3:] == ".h5":
-    raise NotImplementedError("Dumping states to h5 not yet supported")
-  elif fname[-4:] == ".pkl" or fname[-7:] == ".pickle":
-    print("Saving Pickle:", fname)
-    with open(fname, "wb") as f:
-      pickle.dump(data, f)
-  else:
-    print("Ignoring file extension. Saving states with pickle extension", fname + ".pkl")
-    print("Saving Pickle:", fname + ".pkl")
-    with open(fname + ".pkl", "wb") as f:
-      pickle.dump(data, f)
-
-  return data
 
 
-def loadStates(input_, args, nelec):
-  """
-  Loads saved pkl from saveStates
-  Supports using the same ansatz or any ansatz -> SD/SDC
-  """
-
-  if isinstance(input_, str):
-    import pickle
-
-    # TODO: support SD/SDC ->SD_ROT
-    fname = input_
-    print(f"Loading saved data from {fname}")
-    if fname[-4:] != ".pkl" and fname[-7:] != ".pickle":
-      print("Assuming pkl/pickle format, other formats currently unsupported")
-
-    with open(fname, "rb") as f:
-      original_data = pickle.load(f)
-  elif isinstance(input_, tuple) or isinstance(input_, list):
-    original_data = input_[0]
-  elif isinstance(input_, dict):
-    original_data = input_
-  else:
-    raise RuntimeError(f"Unknown restart data ({type(input_)}")
-
-  Es = original_data["Es"]
-  order = np.argsort(Es)
-  phi0 = original_data["phi0"]
-
-  if original_data["args"].batch_size < args.batch_size:
-    raise NotImplementedError(
-      f"Old data had {original_data['args'].batch_size} batch_size "
-      f"but requesting more on restart {args.batch_size}. This is currently unsupported"
-    )
-
-  if args.ansatz == original_data["args"].ansatz:
-    # easy case
-    state0_ref = original_data["state"]
-    state0 = original_data["states"][order[: args.batch_size]]
-
-  elif args.ansatz == "SD" or args.ansatz == "SDC":
-    if "all_orbitals" not in original_data:
-      raise RuntimeError(
-        "All orbitals were not saved (i.e. dump_batch was not set to True). "
-        "Please rerun original calculation or keep the same trial"
-      )
-    # orbitals leading dim is (nspin,nwalkers,...)
-    # so need a reshape
-
-    old_orb = original_data["orbitals"]
-    maxdim = max([p.shape[-1] for p in old_orb])
-    dtype = old_orb[0].dtype
-    state0_ref = np.zeros((len(old_orb), old_orb[0].shape[0], maxdim), dtype=dtype)
-    for i, p in enumerate(old_orb):
-      x, y = p.shape
-      state0_ref[i, 0:x, 0:y] = old_orb[i][:]
-    # now deal with picking the best of the old orbitals
-    old_orbs = original_data["all_orbitals"]  # (nspin,ntrial,N,Ne)
-    state0 = np.zeros((args.batch_size, *state0_ref.shape), dtype=dtype)
-    for i, p in enumerate(old_orbs):
-      x, y = p[0].shape
-      state0[:, i, 0:x, 0:y] = old_orbs[i][order[: args.batch_size], 0:x, :y]
-    ## if originally not SDC and now is SDC
-    if args.ansatz == "SDC":
-      state0 = jnp.stack([state0.real, state0.imag])
-      state0_ref = jnp.stack([state0_ref.real, state0_ref.imag])
-  print("Loaded state with energy:", original_data["E"])
-
-  return state0, state0_ref, phi0
-
-
-def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.00001, Phi=None):
+def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.01, Phi=None):
   """
   construct a random Slater determinant as
 
@@ -195,10 +84,10 @@ def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.
   X = rng.random(shape)
   X = 0.5 * (X + X.T)
 
-  Phi = np.exp(-1j * delta * X) @ Phi
+  Phi = jexpm(-1j * delta * X) @ Phi
 
   if spin_symm == SlaterType.NONCOLLINEAR:
-    return jnp.stack([Phi])
+    return (Phi,)
   elif spin_symm == SlaterType.COLLINEAR:
     return (Phi[:, : nelec[0]], Phi[:, : nelec[1]])
 
@@ -228,7 +117,7 @@ def constructPhi0(Tlist, N, nelec, spin_symm=SlaterType.COLLINEAR, averageSpins=
       )
     T = Tlist[0]
     _, orbitals = np.linalg.eigh(T)
-    return jnp.stack([orbitals[:, : sum(nelec)]])
+    return (orbitals[:, : sum(nelec)],)
 
   # collinear T version
   assert np.all([T.shape[0] == N for T in Tlist])
@@ -250,7 +139,7 @@ def constructPhi0(Tlist, N, nelec, spin_symm=SlaterType.COLLINEAR, averageSpins=
   elif spin_symm == SlaterType.NONCOLLINEAR:
     # collinear Hamiltonian, NC walkers
     _, orbitals = np.linalg.eigh(np.block([[Tup, np.zeros_like(Tdn)], [np.zeros_like(Tup), Tdn]]))
-    return jnp.stack([orbitals[:, : nelec[0] + nelec[1]]])
+    return (orbitals[:, : nelec[0] + nelec[1]],)
 
 
 ###########################################################################
@@ -419,18 +308,12 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       return Rot
 
     if spin_symm == SlaterType.GHF:
-      # note, phi0 has shape (1,2*N,sum(nelec))
-      # so we pick up the correct (1,) from numpy
-      # broadcasting rules
+      # phi0 is a 1-tuple: (arr,) where arr has shape (2*N, sum(nelec))
       def orbFunc(state):
-        R = makeRot(state[0])
-        orbs = R @ phi0
-        return (orbs[0], orbs[1])
+        return (makeRot(state[0]) @ phi0[0],)
 
       def rdmFunc(state):
-        R = makeRot(state[0])
-        orbs = R @ phi0
-        return sd_to_rdm_noncollinear(orbs)
+        return sd_to_rdm_noncollinear((makeRot(state[0]) @ phi0[0],))
     else:
 
       def orbFunc(state):
@@ -466,18 +349,12 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
       return Rot
 
     if spin_symm == SlaterType.GHF:
-      # note, phi0 has shape (1,2*N,sum(nelec))
-      # so we pick up the correct (1,) from numpy
-      # broadcasting rules
+      # phi0 is a 1-tuple: (arr,) where arr has shape (2*N, sum(nelec))
       def orbFunc(state):
-        R = makeRot(state[0])
-        orbs = R @ phi0
-        return (orbs[0],)
+        return (makeRot(state[0]) @ phi0[0],)
 
       def rdmFunc(state):
-        R = makeRot(state[0])
-        orbs = R @ phi0
-        return sd_to_rdm_noncollinear(orbs)
+        return sd_to_rdm_noncollinear((makeRot(state[0]) @ phi0[0],))
     else:
 
       def orbFunc(state):
@@ -666,7 +543,8 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     # using ideas from https://arxiv.org/abs/2110.08986
     # the only manifold implemented is a Stiefel manifold (SD/SDC)
     # check that we are SD only
-    assert rep_type in [RepOptions.SLATERDET, RepOptions.SLATERDETC]
+    if rep_type not in [RepOptions.SLATERDET, RepOptions.SLATERDETC]:
+      raise NotImplementedError("Riemannian optimization only implemented for SD/SDC representations")
     beta = kwargs.get("beta", 1e-8)  # TODO: calc this
     nelec = kwargs["nelec"]
     print(f"Using Riemannian CD mode, {beta=}")
@@ -907,7 +785,10 @@ def lattice_hf(
       shiftsj = rng.normal(scale=state0_scale / 100, size=state0.shape)
     for i, p in enumerate(phi0):
       x, y = p.shape
-      state0[:, i, 0:x, 0:y] += shifts[:, i, 0:x, :y]
+      if initial_guess is not None: # add noise to initial guess if provided
+        state0[:, i, 0:x, 0:y] += p + shifts[:, i, 0:x, :y]
+      else:
+        state0[:, i, 0:x, 0:y] += shifts[:, i, 0:x, :y]
       state0_ref[i, 0:x, 0:y] = p[:, :]
       if force_complex:
         state0[:, i, 0:x, 0:y] += shiftsj[:, i, 0:x, :y]

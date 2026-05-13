@@ -42,7 +42,7 @@ packages = [
 
 [tool.pytest.ini_options]
 minversion = "6.0"
-addopts = "--verbose --html=./.htmlpytest/pytest.html --strict-markers"
+addopts = "--verbose --strict-markers"
 testpaths = [
     "tests",
 ]
