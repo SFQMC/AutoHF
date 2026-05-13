@@ -131,7 +131,7 @@ class AutoHFHamiltonian:
       if self.N is None:
         self.N = len(T[0])
 
-    self._one_body = T
+      self._one_body = T
 
   def _add_U(self, U, U1, U2):
     if U is not None:
