@@ -10,7 +10,7 @@ class TestProcessArgs:
   def test_process_args_defaults(self):
     """Test process_args with no input uses defaults."""
     args = process_args(None, display=False)
-    
+
     # Check some default values
     assert args.steps > 0
     assert args.batch_size > 0
@@ -25,9 +25,9 @@ class TestProcessArgs:
       "ansatz": "SD_ROT",
       "noncollinear": True,
     }
-    
+
     args = process_args(custom, display=False)
-    
+
     assert args.steps == 100
     assert args.batch_size == 4
     assert args.ansatz == "SD_ROT"
@@ -37,19 +37,19 @@ class TestProcessArgs:
     """Test deprecated 'numTrials' parameter shows warning."""
     with warnings.catch_warnings(record=True) as w:
       warnings.simplefilter("always")
-      
+
       args = process_args({"numTrials": 8}, display=False)
-      
+
       # Should warn about deprecation
       assert len(w) > 0
       assert any("deprecated" in str(warning.message).lower() for warning in w)
       assert any("numTrials" in str(warning.message) for warning in w)
-      
+
       # Should also print
       captured = capfd.readouterr()
       assert "numTrials" in captured.out
       assert "deprecated" in captured.out.lower()
-      
+
       # Should map to batch_size
       assert args.batch_size == 8
 
@@ -57,15 +57,15 @@ class TestProcessArgs:
     """Test deprecated 'numSteps' parameter shows warning."""
     with warnings.catch_warnings(record=True) as w:
       warnings.simplefilter("always")
-      
+
       args = process_args({"numSteps": 200}, display=False)
-      
+
       assert len(w) > 0
       assert any("numSteps" in str(warning.message) for warning in w)
-      
+
       captured = capfd.readouterr()
       assert "numSteps" in captured.out
-      
+
       # Should map to steps
       assert args.steps == 200
 
@@ -73,15 +73,15 @@ class TestProcessArgs:
     """Test deprecated 'dumpTrials' parameter shows warning."""
     with warnings.catch_warnings(record=True) as w:
       warnings.simplefilter("always")
-      
+
       args = process_args({"dumpTrials": True}, display=False)
-      
+
       assert len(w) > 0
       assert any("dumpTrials" in str(warning.message) for warning in w)
-      
+
       captured = capfd.readouterr()
       assert "dumpTrials" in captured.out
-      
+
       # Should map to dump_batch
       assert args.dump_batch is True
 
@@ -92,15 +92,15 @@ class TestProcessArgs:
       "numSteps": 150,
       "dumpTrials": False,
     }
-    
+
     with warnings.catch_warnings(record=True) as w:
       warnings.simplefilter("always")
-      
+
       args = process_args(deprecated_params, display=False)
-      
+
       # Should have 3 warnings
       assert len(w) >= 3
-      
+
       # All parameters should map correctly
       assert args.batch_size == 5
       assert args.steps == 150
@@ -109,14 +109,14 @@ class TestProcessArgs:
   def test_process_args_display_mode(self, capfd):
     """Test process_args with display=True shows settings."""
     args = process_args({"steps": 50}, display=True)
-    
+
     captured = capfd.readouterr()
     assert "AutoHF Settings" in captured.out
 
   def test_process_args_inputfile(self):
     """Test process_args handles inputfile parameter."""
     args = process_args({"inputfile": "test.toml"}, display=False)
-    
+
     assert args.inputfile == "test.toml"
 
   def test_process_args_ansatz_string(self):
@@ -129,7 +129,7 @@ class TestProcessArgs:
     """Test process_args noncollinear flag."""
     args_col = process_args({"noncollinear": False}, display=False)
     args_nc = process_args({"noncollinear": True}, display=False)
-    
+
     assert args_col.noncollinear is False
     assert args_nc.noncollinear is True
 
@@ -137,7 +137,7 @@ class TestProcessArgs:
     """Test process_args riemannian optimization flag."""
     args_std = process_args({"riemannian": False}, display=False)
     args_riem = process_args({"riemannian": True}, display=False)
-    
+
     assert args_std.riemannian is False
     assert args_riem.riemannian is True
 
@@ -145,7 +145,7 @@ class TestProcessArgs:
     """Test process_args GPU flag."""
     args_cpu = process_args({"gpu": False}, display=False)
     args_gpu = process_args({"gpu": True}, display=False)
-    
+
     assert args_cpu.gpu is False
     assert args_gpu.gpu is True
 
@@ -175,7 +175,7 @@ class TestProcessArgs:
     """Test process_args dump_batch flag."""
     args_no_dump = process_args({"dump_batch": False}, display=False)
     args_dump = process_args({"dump_batch": True}, display=False)
-    
+
     assert args_no_dump.dump_batch is False
     assert args_dump.dump_batch is True
 
@@ -183,7 +183,7 @@ class TestProcessArgs:
     """Test process_args with CUSTOM ansatz."""
     args = process_args({"ansatz": "CUSTOM"}, display=False)
     assert args.ansatz == "CUSTOM"
-  
+
   def test_process_args_accepts_string_ansatz(self):
     """Test that string ansatz values are accepted (validation happens later)."""
     # process_args returns SimpleNamespace, not dict
@@ -195,11 +195,11 @@ class TestProcessArgs:
     # Get default steps
     args_default = process_args(None, display=False)
     default_steps = args_default.steps
-    
+
     # Override with custom value
     custom_steps = default_steps + 100
     args_custom = process_args({"steps": custom_steps}, display=False)
-    
+
     assert args_custom.steps == custom_steps
     assert args_custom.steps != default_steps
 
