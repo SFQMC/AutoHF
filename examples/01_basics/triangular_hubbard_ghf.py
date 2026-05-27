@@ -69,7 +69,7 @@ T[hops] = -1
 
 H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
-autohf.lattice_hf(
+autohf.solve_hf(
   H,
   settings=hf_settings,
 )

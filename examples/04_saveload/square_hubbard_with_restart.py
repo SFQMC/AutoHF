@@ -59,7 +59,7 @@ T = makeT(Nx, Ny)
 
 H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
-autohf.lattice_hf(
+autohf.solve_hf(
   H,
   settings=hf_settings,
 )
@@ -78,7 +78,7 @@ hf_settings = {
   "output": output_base + "_1.pkl",
   "seed": 1234,
 }
-autohf.lattice_hf(
+autohf.solve_hf(
   H,
   settings=hf_settings,
   start_from=output_base + "_0.pkl",

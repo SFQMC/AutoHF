@@ -1,2 +1,2 @@
-from .solver import lattice_hf
+from .solver import solve_hf
 from .hamiltonian import AutoHFHamiltonian

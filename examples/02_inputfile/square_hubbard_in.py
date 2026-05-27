@@ -45,4 +45,4 @@ T = makeT(Nx, Ny, lattice_settings["boundary1"] == "PBC", lattice_settings["boun
 
 H = autohf.AutoHFHamiltonian(T=(T, T), U=1.5)
 
-autohf.lattice_hf(H, inputfile=fname)
+autohf.solve_hf(H, inputfile=fname)

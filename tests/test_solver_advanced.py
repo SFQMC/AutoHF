@@ -13,7 +13,7 @@ import os
 import pytest
 import warnings
 import numpy as np
-from autohf import lattice_hf
+from autohf import solve_hf
 
 # Ensure CPU-only execution for testing
 os.environ["JAX_PLATFORMS"] = "cpu"
@@ -33,7 +33,7 @@ class TestRiemannianOptimization:
       "batch_size": 2,
       "riemannian": True,
     }
-    results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+    results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
     
     assert "state" in results
     assert "E" in results
@@ -49,7 +49,7 @@ class TestRiemannianOptimization:
       "batch_size": 2,
       "riemannian": True,
     }
-    results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+    results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
     
     assert "state" in results
     assert "E" in results
@@ -66,7 +66,7 @@ class TestRiemannianOptimization:
     }
     
     with pytest.raises(NotImplementedError):
-      lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+      solve_hf(hamiltonian=hubbard_4x4, settings=settings)
 
 
 class TestAlternativeOptimizers:
@@ -82,7 +82,7 @@ class TestAlternativeOptimizers:
       "batch_size": 2,
       "eta": 0.1,
     }
-    results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+    results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
     
     assert "state" in results
     assert "E" in results
@@ -99,7 +99,7 @@ class TestAlternativeOptimizers:
       "ansatz": "SD_ROT",
       "batch_size": 1,  # Basin hopping requires batch_size=1
     }
-    results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+    results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
     
     assert "state" in results
     assert "E" in results
@@ -120,7 +120,7 @@ class TestAlternativeOptimizers:
     
     with warnings.catch_warnings(record=True) as w:
       warnings.simplefilter("always")
-      results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+      results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
       
       # Check for warning about batch_size
       warning_messages = [str(warning.message) for warning in w]
@@ -137,7 +137,7 @@ class TestAlternativeOptimizers:
     }
     
     with pytest.raises(NotImplementedError, match="not implemented"):
-      lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+      solve_hf(hamiltonian=hubbard_4x4, settings=settings)
 
 
 class TestComplexDtype:
@@ -153,7 +153,7 @@ class TestComplexDtype:
       "batch_size": 2,
       "complex": True,
     }
-    results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+    results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
     
     assert "state" in results
     assert "E" in results
@@ -169,7 +169,7 @@ class TestComplexDtype:
       "batch_size": 1,
       "approx_expm": True,
     }
-    results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+    results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
     
     assert "state" in results
     assert "E" in results
@@ -189,7 +189,7 @@ class TestSpinMeasurements:
       "verbose": True,
       "measure_spin": True,  # Required to print spin measurements
     }
-    results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+    results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
     
     # measure_spin=True prints spin measurements
     captured = capfd.readouterr()
@@ -208,7 +208,7 @@ class TestSpinMeasurements:
       "verbose": True,
       "measure_spin": True,  # Required to print spin measurements
     }
-    results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+    results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
     
     # measure_spin=True prints spin measurements
     captured = capfd.readouterr()
@@ -234,7 +234,7 @@ class TestEdgeCases:
     # This might trigger the warning if optimization fails
     with warnings.catch_warnings(record=True) as w:
       warnings.simplefilter("always")
-      results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+      results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
       
       # Check if warning about energy was raised (might not always trigger)
       warning_messages = [str(warning.message) for warning in w]
@@ -268,6 +268,6 @@ class TestEdgeCases:
       "noncollinear": True,
     }
     
-    results, funcs = lattice_hf(hamiltonian=ham, settings=settings)
+    results, funcs = solve_hf(hamiltonian=ham, settings=settings)
     assert "state" in results
     assert "E" in results

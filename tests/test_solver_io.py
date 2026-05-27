@@ -12,7 +12,7 @@ from autohf.options import process_args
 @pytest.fixture
 def mock_solver_data(hubbard_4x4):
   """Create mock data from a minimal solver run."""
-  from autohf import lattice_hf
+  from autohf import solve_hf
   
   settings = {
     "nelec": (3, 3),
@@ -21,7 +21,7 @@ def mock_solver_data(hubbard_4x4):
     "ansatz": "SD_ROT",
   }
   
-  results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
+  results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
   
   return {
     "states": results["states"],

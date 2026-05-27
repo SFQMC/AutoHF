@@ -73,7 +73,7 @@ T[hops] = -1
 H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
 ## Standard lbfgs to get a sense of things
-data, data_f = autohf.lattice_hf(
+data, data_f = autohf.solve_hf(
   H,
   settings=hf_settings,
 )
@@ -87,7 +87,7 @@ opt = optax.chain(
   optax.scale(-0.01),
 )
 
-data, data_f = autohf.lattice_hf(
+data, data_f = autohf.solve_hf(
   H,
   settings=hf_settings | dict(opt_method="grad"),
   optimizer=opt,
@@ -141,7 +141,7 @@ def print_info():
   return optax.GradientTransformationExtraArgs(init_fn, update_fn)
 
 
-data, data_f = autohf.lattice_hf(
+data, data_f = autohf.solve_hf(
   H,
   settings=hf_settings | dict(opt_method="grad", steps=-1),
 )

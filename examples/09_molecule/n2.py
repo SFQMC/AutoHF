@@ -87,7 +87,7 @@ def molecular_energy(state, rdms):
   )
 
 
-data, data_functions = autohf.lattice_hf(
+data, data_functions = autohf.solve_hf(
   H, settings=hf_settings, custom_energy_term=molecular_energy
 )
 rounding_level = -np.log10(chol_tol).astype(int)

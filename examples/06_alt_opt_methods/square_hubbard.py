@@ -58,19 +58,19 @@ T = makeT(Nx, Ny)
 H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
 # Standard lbfgs
-data, data_f = autohf.lattice_hf(
+data, data_f = autohf.solve_hf(
   H,
   settings=hf_settings,
 )
 
 # Basin Hopping via scipy
-data, data_f = autohf.lattice_hf(
+data, data_f = autohf.solve_hf(
   H,
   settings=hf_settings | dict(opt_method="basin"),
 )
 
 # Gradient Descent via optax
-data, data_f = autohf.lattice_hf(
+data, data_f = autohf.solve_hf(
   H,
   settings=hf_settings | dict(opt_method="grad"),
 )

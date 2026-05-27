@@ -1,17 +1,17 @@
 import pytest
-from autohf.solver import lattice_hf
+from autohf.solver import solve_hf
 
 
 class TestAutoHFSolver:
   """
-  Tests for the behavior of the lattice_hf solver.
+  Tests for the behavior of the solve_hf solver.
   This does not include tests which check the correctness
   of the Hartree-Fock energy for specific systems.
   """
 
   def test_starts(self, hubbard_4x4):
     """
-    Tests that the lattice_hf solver can be started with
+    Tests that the solve_hf solver can be started with
     a variety of initial conditions.
     """
 
@@ -19,13 +19,13 @@ class TestAutoHFSolver:
       ansatz="SD_ROT", steps=10, nelec=(8, 8), batch_size=3, seed=12345, noncollinear=False
     )
 
-    results = lattice_hf(hamiltonian=hubbard_4x4, settings=hf_settings)
+    results = solve_hf(hamiltonian=hubbard_4x4, settings=hf_settings)
 
     assert results is not None
 
   def test_restart(self, hubbard_4x4):
     """
-    Tests that the lattice_hf solver
+    Tests that the solve_hf solver
     can be restarted from a previous calculation.
     This allows settings (or even the Hamiltonian) to be changed
     after some initial optimization.
@@ -46,12 +46,12 @@ class TestAutoHFSolver:
       dump_batch=True,
     )
 
-    results = lattice_hf(hubbard_4x4, settings=hf_settings)
+    results = solve_hf(hubbard_4x4, settings=hf_settings)
 
     hf_settings["ansatz"] = "SD"
     hf_settings["riemannian"] = True
 
-    results = lattice_hf(hubbard_4x4, settings=hf_settings, start_from=results)
+    results = solve_hf(hubbard_4x4, settings=hf_settings, start_from=results)
 
     # TODO: need to think about how to test that this
     #         did what we wanted (this only checks that it runs
@@ -60,12 +60,12 @@ class TestAutoHFSolver:
 
   def test_expected_errors(self):
     """
-    Tests that the lattice_hf solver raises the expected errors.
+    Tests that the solve_hf solver raises the expected errors.
 
     TODO: use pytest mark parameterize to test many cases here.
     """
     with pytest.raises(ValueError):
-      lattice_hf(None, settings={})
+      solve_hf(None, settings={})
 
   @pytest.mark.parametrize("ansatz", ["SD_ROT", "SD", "DIAG", "SDC", "SD_ROTC"])
   @pytest.mark.parametrize("nelec", [(3, 3), (6, 2)])
@@ -75,7 +75,7 @@ class TestAutoHFSolver:
       ansatz=ansatz, steps=-1, nelec=nelec, batch_size=3, seed=12345, noncollinear=False
     )
 
-    results = lattice_hf(hubbard_4x4, hf_settings)
+    results = solve_hf(hubbard_4x4, hf_settings)
     assert results[0]["nelec"] == nelec
     assert results[0]["args"].ansatz == ansatz
     oout = results[0]["orbitals"]
@@ -94,7 +94,7 @@ class TestAutoHFSolver:
       ansatz=ansatz, steps=-1, nelec=nelec, batch_size=3, seed=12345, noncollinear=True
     )
 
-    results = lattice_hf(hubbard_4x4, hf_settings)
+    results = solve_hf(hubbard_4x4, hf_settings)
     assert results[0]["nelec"] == nelec
     assert results[0]["args"].ansatz == ansatz
     oout = results[0]["orbitals"][0]

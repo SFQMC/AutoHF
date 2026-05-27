@@ -628,7 +628,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
   return jax.jit(energyCall), jax.jit(rdmFunc), orbFunc
 
 
-def lattice_hf(
+def solve_hf(
   hamiltonian: AutoHFHamiltonian,
   settings=None,
   initial_guess=None,
@@ -656,7 +656,7 @@ def lattice_hf(
     raise ValueError(
       "Hartree-Fock requies a Hamiltonian to run. "
       "Please provide a Hamiltonian instance as an argument\
-            i.e. `lattice_hf(hamiltonian=hamiltonian)`"
+            i.e. `solve_hf(hamiltonian=hamiltonian)`"
     )
 
   if settings is None:
