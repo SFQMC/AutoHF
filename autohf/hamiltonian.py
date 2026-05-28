@@ -30,40 +30,101 @@ else:
     NONCOLLINEAR = 1
     CLOSED = 2
 
-
 class AutoHFHamiltonian:
-  """
+  r"""
   Container class to hold Hamiltonian terms for AutoHF in internal format.
 
   Hamiltonian terms are stored as ``(vals, sites)`` pairs, where ``vals``
   is a list of unique non-zero coupling values and ``sites`` is a list of
   the corresponding site-index arrays at which each value appears.
+
+  Parameters
+  ----------
+  source : AutoHFHamiltonian or afqmctools.Hamiltonian, optional
+      If source is an ``AutoHFHamiltonian``, performs a deep-copy (copy constructor).
+      If source is an afqmctools ``Hamiltonian``, reads T, U, U1, U2, J, and
+      Heisenberg terms from it.  If ``None`` (default), builds from
+      keyword arguments.
+  settings : dict, optional
+      Convenience dict for lattice geometry.  Expected keys:
+      * ``"L"`` — ``(Nx, Ny)`` tuple of lattice dimensions (required).
+      * ``"Nbands"`` — number of orbitals per site (default 1).
+      Takes precedence over the ``Nx``, ``Ny``, and ``Nbands`` kwargs.
+  **kwargs
+      Hamiltonian terms and lattice metadata passed directly.  See
+      ``add_terms`` for the accepted term keywords.  Additional keys:
+      * ``N`` — total number of orbitals (sites × Nbands; inferred from T or settings if omitted).
+      * ``Nx``, ``Ny`` — lattice dimensions (used for metadata only).
+      * ``Nbands`` — number of orbitals per site (default 1).
+  
+  Supported Hamiltonian Terms
+  ---------------------------
+  Supply each term as a keyword argument, and supply input arrays in the following formats.
+    
+  T : array-like, shape (nspin, N, N)
+
+    One-body hopping matrix. Implements 
+    :math:`\\sum_{ij,\\sigma} T_{ij} c_{i\\sigma}^\\dagger c_{j\\sigma}`.
+      
+    Must be a list/tuple/ndarray with one
+    NxN matrix per spin sector: ``(T_up, T_dn)`` for collinear (UHF)
+    or ``[T_total]`` for non-collinear (GHF).
+
+  U : scalar, 1-D array of length N, or NxN matrix
+
+    On-site Hubbard interaction.  Implements
+    :math:`\\sum_i U_i n_{i\\uparrow} n_{i\\downarrow}`.
+
+      Accepted forms:
+
+      * scalar — expanded to ``np.ones(N) * U`` then diagonalized.
+      * 1-D array of length N — treated as diagonal of the coupling matrix.
+      * NxN matrix — all non-zero entries are used as per-orbital strengths
+        (row indices are stored; off-diagonal entries contribute their row
+        index, which is the intended behavior for orbital-dependent U).
+
+  U1 : NxN array
+
+    Inter-orbital mixed-spin density-density coupling.  Implements
+    :math:`\\sum_{i<j,\\sigma} U1_{ij}\, n_{i\\sigma} n_{j\\bar\\sigma}`.
+
+    Stored as ``_terms["U1"] = (U1vals, U1Sites)``
+    where ``U1Sites[k]`` is a tuple ``(i_array, j_array)`` of pairs
+    with ``i < j`` and coupling value ``U1vals[k]``.
+
+    Only the upper-triangular part of the matrix is used.
+
+  U2 : NxN array
+
+    Inter-orbital same-spin density-density coupling (Wick-contracted with
+    the exchange correction).  Implements
+    :math:`\\sum_{i<j,\\sigma} U2_{ij}\, n_{i\\sigma} n_{j\\sigma}`.
+
+    Uses same format as U1, stored under ``_terms["U2"]``.
+
+    Only the upper-triangular part of the matrix is used.
+
+  J : NxN array
+
+    Hund's coupling (HK-model form).  Encodes pair-hopping and
+    spin-flip processes between orbitals ``i`` and ``j``. Implements
+    :math:`\\sum_{i<j} J_{ij} (c_{i\\uparrow}^\\dagger c_{j\\uparrow} c_{j\\downarrow}^\\dagger c_{i\\downarrow} + h.c.)`
+
+    Uses same format as U1, stored under ``_terms["J"]``.
+
+    Only the upper-triangular part of the matrix is used.
+    
+  Jheis, Jheisenberg : NxN array
+
+    Heisenberg spin-spin coupling. Implements
+    :math:`\\sum_{i<j} J_{ij}\, \\vec{S}_i \\cdot \\vec{S}_j`.
+    
+    Uses same format as U1, stored under ``_terms["J_heisenberg"]``.
+
+    ``Jheisenberg`` is an alias for ``Jheis``.
   """
 
   def __init__(self, source=None, settings=None, **kwargs) -> None:
-    """
-    Parameters
-    ----------
-    source : AutoHFHamiltonian or afqmctools.Hamiltonian, optional
-        If an ``AutoHFHamiltonian``, performs a deep-copy (copy constructor).
-        If an afqmctools ``Hamiltonian``, reads T, U, U1, U2, J, and
-        Heisenberg terms from it.  If ``None`` (default), builds from
-        keyword arguments.
-    settings : dict, optional
-        Convenience dict for lattice geometry.  Expected keys:
-
-        * ``"L"`` — ``(Nx, Ny)`` tuple of lattice dimensions (required).
-        * ``"Nbands"`` — number of orbitals per site (default 1).
-
-        Takes precedence over the ``Nx``, ``Ny``, and ``Nbands`` kwargs.
-    **kwargs
-        Hamiltonian terms and lattice metadata passed directly.  See
-        ``add_terms`` for the accepted term keywords.  Additional keys:
-
-        * ``N`` — total number of orbitals (sites × Nbands; inferred from T or settings if omitted).
-        * ``Nx``, ``Ny`` — lattice dimensions (used for metadata only).
-        * ``Nbands`` — number of orbitals per site (default 1).
-    """
     self._terms = {}
     self._one_body = None
     self.N = None
@@ -100,37 +161,15 @@ class AutoHFHamiltonian:
     self.add_terms(**kwargs)
 
   def add_terms(self, **kwargs):
-    """
+    r"""
     Add one or more Hamiltonian terms.
-
-    Accepted keywords
-    -----------------
-    T : array-like, shape (nspin, N, N)
-        One-body hopping matrix.  Must be a list/tuple/ndarray with one
-        NxN matrix per spin sector: ``(T_up, T_dn)`` for collinear (UHF)
-        or ``[T_total]`` for non-collinear (GHF).
-    U : scalar, 1-D array of length N, or NxN matrix
-        On-orbital Hubbard repulsion.  Implements
-        :math:`U \\sum_i n_{i\\uparrow} n_{i\\downarrow}`.
-        A scalar expands to a uniform diagonal; a 1-D array is treated as
-        the diagonal of the coupling matrix.
-    U1 : NxN symmetric array
-        Inter-orbital mixed-spin density-density coupling.  Implements
-        :math:`\\sum_{i<j,\\sigma} U1_{ij}\, n_{i\\sigma} n_{j\\bar\\sigma}`.
-        Only entries with ``i < j`` are stored (matrix must be symmetric).
-    U2 : NxN symmetric array
-        Inter-orbital same-spin density-density coupling (Wick-contracted with
-        the exchange correction).  Implements
-        :math:`\\sum_{i<j,\\sigma} U2_{ij}\, n_{i\\sigma} n_{j\\sigma}`.
-        Only entries with ``i < j`` are stored.
-    J : NxN symmetric array
-        Hund's coupling (HK-model form).  Encodes pair-hopping and
-        spin-flip processes between orbitals ``i`` and ``j``.
-        Only entries with ``i < j`` are stored.
-    Jheis, Jheisenberg : NxN symmetric array
-        Heisenberg spin-spin coupling
-        :math:`\\sum_{i<j} J_{ij}\, \\vec{S}_i \\cdot \\vec{S}_j`.
-        ``Jheisenberg`` is an alias for ``Jheis``.
+    
+    Parameters
+    ----------
+    **kwargs
+        Hamiltonian terms and lattice metadata passed directly.  See
+        ``Supported Hamiltonian Terms`` in the docstring of AutoHFHamiltonian
+        for the accepted term keywords and array formats.
     """
     self._add_T(kwargs.get("T", None))
     # NOTE: T must go first as it sets N for potential scalar U
@@ -158,6 +197,8 @@ class AutoHFHamiltonian:
   def _add_T(self, T):
     """
     Parse and store the one-body hopping matrix.
+
+    see docstring of AutoHFHamiltonian for accepted formats.
 
     T is stored both as the raw ``_one_body`` array and in the compressed
     ``_terms["T"]`` representation ``(Tvals, TSites)`` where
@@ -208,28 +249,7 @@ class AutoHFHamiltonian:
     """
     Parse and store density-density interaction terms.
 
-    U
-        On-site Hubbard interaction.  Accepted forms:
-
-        * scalar — expanded to ``np.ones(N) * U`` then diagonalised.
-        * 1-D array of length N — treated as diagonal of the coupling matrix.
-        * NxN matrix — all non-zero entries are used as per-orbital strengths
-          (row indices are stored; off-diagonal entries contribute their row
-          index, which is the intended behavior for orbital-dependent U).
-
-        Stored as ``_terms["U"] = (Uvals, USites)`` where ``USites[k]``
-        is the array of orbital indices with coupling value ``Uvals[k]``
-        (only row indices, since U is diagonal).
-
-    U1
-        Inter-orbital mixed-spin density-density coupling.  Must be an NxN
-        symmetric matrix.  Stored as ``_terms["U1"] = (U1vals, U1Sites)``
-        where ``U1Sites[k]`` is a tuple ``(i_array, j_array)`` of pairs
-        with ``i < j`` and coupling value ``U1vals[k]``.
-
-    U2
-        Inter-orbital same-spin density-density coupling.  Same format as U1.
-        Stored under ``_terms["U2"]``.
+    see docstring of AutoHFHamiltonian for accepted formats.
     """
     if U is not None:
       if isinstance(U, float) or isinstance(U, int):
@@ -262,10 +282,7 @@ class AutoHFHamiltonian:
     """
     Parse and store the Hund's coupling term.
 
-    J must be an NxN symmetric matrix.  Stored as
-    ``_terms["J"] = (Jvals, JSites)`` where ``JSites[k]`` is a tuple
-    ``(i_array, j_array)`` of pairs with ``i < j`` and coupling value
-    ``Jvals[k]``.
+    see docstring of AutoHFHamiltonian for accepted formats.
     """
     if J is not None:
       Jvals = np.unique(J[J != 0.0])
@@ -277,10 +294,7 @@ class AutoHFHamiltonian:
     """
     Parse and store the Heisenberg spin-spin coupling term.
 
-    J must be an NxN symmetric matrix.  Stored as
-    ``_terms["J_heisenberg"] = (Jvals, JSites)`` where ``JSites[k]`` is a
-    tuple ``(i_array, j_array)`` of pairs with ``i < j`` and coupling value
-    ``Jvals[k]``.  Replaces any previously stored Heisenberg term.
+    see docstring of AutoHFHamiltonian for accepted formats.
     """
     if J is not None:
       Jvals = np.unique(J[J != 0.0])
