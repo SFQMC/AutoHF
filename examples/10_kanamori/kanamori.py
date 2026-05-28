@@ -87,6 +87,17 @@ Ne = 6
 steps = 500
 batch_size = 10
 
+hf_settings = {
+  "verbose": False,
+  "steps": steps,
+  "opt_method": "lbfgs",
+  "ansatz": "SD_ROT",
+  "batch_size": batch_size,
+  "gpu": False,
+  "nelec": (Ne, Ne),
+  "noncollinear": False,
+}
+
 
 T = make_T_multiband(Nx, Ny, Nbands, t, xperiodic=xperiodic, yperiodic=yperiodic)
 
@@ -105,15 +116,5 @@ H = autohf.AutoHFHamiltonian(
   Nbands=Nbands,
 )
 
-hf_settings = {
-  "verbose": False,
-  "steps": steps,
-  "opt_method": "lbfgs",
-  "ansatz": "SD_ROT",
-  "batch_size": batch_size,
-  "gpu": False,
-  "nelec": (Ne, Ne),
-  "noncollinear": False,
-}
 
 autohf.lattice_hf(H, settings=hf_settings)
