@@ -544,7 +544,8 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     # the only manifold implemented is a Stiefel manifold (SD/SDC)
     # check that we are SD only
     if rep_type not in [RepOptions.SLATERDET, RepOptions.SLATERDETC]:
-      raise NotImplementedError("Riemannian optimization only implemented for SD/SDC representations")
+      raise NotImplementedError("Riemannian optimization only \
+                                implemented for SD/SDC representations")
     beta = kwargs.get("beta", 1e-8)  # TODO: calc this
     nelec = kwargs["nelec"]
     print(f"Using Riemannian CD mode, {beta=}")
@@ -628,7 +629,7 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
   return jax.jit(energyCall), jax.jit(rdmFunc), orbFunc
 
 
-def lattice_hf(
+def solve_hf(
   hamiltonian: AutoHFHamiltonian,
   settings=None,
   initial_guess=None,
@@ -656,7 +657,7 @@ def lattice_hf(
     raise ValueError(
       "Hartree-Fock requies a Hamiltonian to run. "
       "Please provide a Hamiltonian instance as an argument\
-            i.e. `lattice_hf(hamiltonian=hamiltonian)`"
+            i.e. `solve_hf(hamiltonian=hamiltonian)`"
     )
 
   if settings is None:

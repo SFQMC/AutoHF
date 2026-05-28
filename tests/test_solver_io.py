@@ -12,17 +12,17 @@ from autohf.options import process_args
 @pytest.fixture
 def mock_solver_data(hubbard_4x4):
   """Create mock data from a minimal solver run."""
-  from autohf import lattice_hf
-  
+  from autohf import solve_hf
+
   settings = {
     "nelec": (3, 3),
     "steps": 5,
     "batch_size": 2,
     "ansatz": "SD_ROT",
   }
-  
-  results, funcs = lattice_hf(hamiltonian=hubbard_4x4, settings=settings)
-  
+
+  results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
+
   return {
     "states": results["states"],
     "orbFunc": funcs["state2Orbitals"],
@@ -48,7 +48,7 @@ class TestSaveStates:
       fname=None,
       dump_batch=False,
     )
-    
+
     # Check data structure
     assert "state" in data
     assert "Es" in data
@@ -58,7 +58,7 @@ class TestSaveStates:
     assert "phi0" in data
     assert "states" in data
     assert "nelec" in data
-    
+
     # Best energy should be minimum
     assert data["E"] == np.min(data["Es"])
 
@@ -75,7 +75,7 @@ class TestSaveStates:
       fname="",
       dump_batch=False,
     )
-    
+
     assert data is not None
     assert "state" in data
 
@@ -83,7 +83,7 @@ class TestSaveStates:
     """Test saveStates with .pkl format."""
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_save.pkl")
-      
+
       data = saveStates(
         states=mock_solver_data["states"],
         orbFunc=mock_solver_data["orbFunc"],
@@ -94,14 +94,14 @@ class TestSaveStates:
         fname=fname,
         dump_batch=False,
       )
-      
+
       # File should exist
       assert os.path.exists(fname)
-      
+
       # Load and verify
       with open(fname, "rb") as f:
         loaded_data = pickle.load(f)
-      
+
       assert "state" in loaded_data
       assert "Es" in loaded_data
       assert np.array_equal(loaded_data["Es"], data["Es"])
@@ -110,7 +110,7 @@ class TestSaveStates:
     """Test saveStates with .pickle format."""
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_save.pickle")
-      
+
       data = saveStates(
         states=mock_solver_data["states"],
         orbFunc=mock_solver_data["orbFunc"],
@@ -121,14 +121,14 @@ class TestSaveStates:
         fname=fname,
         dump_batch=False,
       )
-      
+
       assert os.path.exists(fname)
 
   def test_save_unknown_extension_converts_to_pickle(self, mock_solver_data):
     """Test saveStates with unknown extension creates .pkl file."""
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_save.dat")
-      
+
       data = saveStates(
         states=mock_solver_data["states"],
         orbFunc=mock_solver_data["orbFunc"],
@@ -139,7 +139,7 @@ class TestSaveStates:
         fname=fname,
         dump_batch=False,
       )
-      
+
       # Should create .pkl file
       assert os.path.exists(fname + ".pkl")
 
@@ -147,7 +147,7 @@ class TestSaveStates:
     """Test saveStates with .npy format saves orbitals."""
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_save.npy")
-      
+
       data = saveStates(
         states=mock_solver_data["states"],
         orbFunc=mock_solver_data["orbFunc"],
@@ -158,10 +158,10 @@ class TestSaveStates:
         fname=fname,
         dump_batch=True,
       )
-      
+
       # File should exist
       assert os.path.exists(fname)
-      
+
       # Load and verify it's a list of orbitals
       loaded = np.load(fname, allow_pickle=True)
       assert loaded is not None
@@ -194,7 +194,7 @@ class TestSaveStates:
       fname=None,
       dump_batch=True,
     )
-    
+
     assert "all_orbitals" in data
     # Should have orbitals for each trial
     assert len(data["all_orbitals"]) == len(mock_solver_data["states"])
@@ -207,7 +207,7 @@ class TestLoadStates:
     """Test loadStates from .pkl file."""
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_load.pkl")
-      
+
       # Save first
       saveStates(
         states=mock_solver_data["states"],
@@ -219,14 +219,14 @@ class TestLoadStates:
         fname=fname,
         dump_batch=False,
       )
-      
+
       # Load
       state0, state0_ref, phi0 = loadStates(
-        fname, 
+        fname,
         mock_solver_data["args"],
         mock_solver_data["nelec"]
       )
-      
+
       assert state0 is not None
       assert state0_ref is not None
       assert phi0 is not None
@@ -243,13 +243,13 @@ class TestLoadStates:
       fname=None,
       dump_batch=False,
     )
-    
+
     state0, state0_ref, phi0 = loadStates(
       data,
       mock_solver_data["args"],
       mock_solver_data["nelec"]
     )
-    
+
     assert state0 is not None
     assert state0_ref is not None
 
@@ -265,13 +265,13 @@ class TestLoadStates:
       fname=None,
       dump_batch=False,
     )
-    
+
     state0, state0_ref, phi0 = loadStates(
       (data, None),  # Tuple with data as first element
       mock_solver_data["args"],
       mock_solver_data["nelec"]
     )
-    
+
     assert state0 is not None
 
   def test_load_from_list(self, mock_solver_data):
@@ -286,13 +286,13 @@ class TestLoadStates:
       fname=None,
       dump_batch=False,
     )
-    
+
     state0, state0_ref, phi0 = loadStates(
       [data],  # List with data as first element
       mock_solver_data["args"],
       mock_solver_data["nelec"]
     )
-    
+
     assert state0 is not None
 
   def test_load_invalid_type_raises_error(self, mock_solver_data):
@@ -316,12 +316,12 @@ class TestLoadStates:
       fname=None,
       dump_batch=False,
     )
-    
+
     # Create new args with larger batch_size
     new_settings = mock_solver_data["args"].__dict__.copy()
     new_settings["batch_size"] = mock_solver_data["args"].batch_size + 5
     new_args = process_args(new_settings)
-    
+
     with pytest.raises(NotImplementedError, match="batch_size"):
       loadStates(data, new_args, mock_solver_data["nelec"])
 
@@ -337,13 +337,13 @@ class TestLoadStates:
       fname=None,
       dump_batch=True,
     )
-    
+
     state0, state0_ref, phi0 = loadStates(
       data,
       mock_solver_data["args"],
       mock_solver_data["nelec"]
     )
-    
+
     # Should load states in sorted order
     assert len(state0) == mock_solver_data["args"].batch_size
 
@@ -359,12 +359,12 @@ class TestLoadStates:
       fname=None,
       dump_batch=False,  # Don't save all orbitals
     )
-    
+
     # Try to load with different ansatz
     new_settings = mock_solver_data["args"].__dict__.copy()
     new_settings["ansatz"] = "SD"
     new_args = process_args(new_settings)
-    
+
     with pytest.raises(RuntimeError, match="All orbitals were not saved"):
       loadStates(data, new_args, mock_solver_data["nelec"])
 
@@ -380,14 +380,14 @@ class TestLoadStates:
       fname=None,
       dump_batch=True,  # Save all orbitals for conversion
     )
-    
+
     # Try to load with SD ansatz
     new_settings = mock_solver_data["args"].__dict__.copy()
     new_settings["ansatz"] = "SD"
     new_args = process_args(new_settings)
-    
+
     state0, state0_ref, phi0 = loadStates(data, new_args, mock_solver_data["nelec"])
-    
+
     assert state0 is not None
     assert state0_ref is not None
 
@@ -403,14 +403,14 @@ class TestLoadStates:
       fname=None,
       dump_batch=True,
     )
-    
+
     # Try to load with SDC ansatz
     new_settings = mock_solver_data["args"].__dict__.copy()
     new_settings["ansatz"] = "SDC"
     new_args = process_args(new_settings)
-    
+
     state0, state0_ref, phi0 = loadStates(data, new_args, mock_solver_data["nelec"])
-    
+
     assert state0 is not None
     # SDC should have real and imaginary parts stacked
     assert state0.shape[0] == 2  # [real, imag]

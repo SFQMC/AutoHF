@@ -104,7 +104,7 @@ H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 ####### Step 1 ######
 # First get energy function
 temp_settings = hf_settings | {"steps": -1}
-data, data_functions = autohf.lattice_hf(
+data, data_functions = autohf.solve_hf(
   H,
   settings=temp_settings,
   verbosity=0,  # quiet mode
@@ -113,7 +113,7 @@ energy_func = data_functions["energy_func"]
 
 ####### Step 2 ######
 # run with default settings, no extra term
-data, data_functions = autohf.lattice_hf(
+data, data_functions = autohf.solve_hf(
   H,
   settings=hf_settings,
 )
@@ -124,7 +124,7 @@ r_uu, r_dd = final_rdm[:N, :N], final_rdm[N:, N:]
 ####### Step 3 ######
 # run with addition term
 # for illustration, energy is shifted by 100
-data_sz, data_functions_sz = autohf.lattice_hf(
+data_sz, data_functions_sz = autohf.solve_hf(
   H,
   settings=hf_settings,
   custom_energy_term=Esz2,

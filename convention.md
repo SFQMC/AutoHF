@@ -12,6 +12,6 @@ The following are internal or external conventions within the code:
     * however `makeRDMs` produces a (2,N,N) or (2N,2N) 1rdm
 
 ### External API
-* `lattice_hf` produces two dictionaries, one that can be pickled and one of jax functions
+* `solve_hf` produces two dictionaries, one that can be pickled and one of jax functions
 * In order to load a pickle, we need access to `Es`,`nelec`, `phi0` potentially, `state`/`states`
 * To convert to SD we need `orbitals` and `all_orbitals` from `"dump_trials":True`

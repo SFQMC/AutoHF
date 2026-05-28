@@ -56,12 +56,12 @@ T = makeT(Nx, Ny)
 
 H = autohf.AutoHFHamiltonian(T=(T, T), U=U)
 
-data, data_F = autohf.lattice_hf(
+data, data_F = autohf.solve_hf(
   H,
   settings=hf_settings,
 )
 
-data, data_F = autohf.lattice_hf(
+data, data_F = autohf.solve_hf(
   H, settings=hf_settings | {"ansatz": "SD", "riemannian": True}, restart_from=(data, data_F)
 )
 

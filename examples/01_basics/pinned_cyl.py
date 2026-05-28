@@ -53,7 +53,7 @@ hf_settings = {
   "gpu": False,
   "nelec": (7, 7),
 }
-autohf.lattice_hf(
+autohf.solve_hf(
   H,
   settings=hf_settings,
 )

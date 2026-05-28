@@ -22,3 +22,4 @@ def convertInitialSlaterDet(initial_guess, Nes, spin_symm=SlaterType.COLLINEAR):
     return (jnp.array(initial_guess[:, : Nes[0] + Nes[1]]),)
   else:
     raise ValueError(f"Could not convert the given initial guess using SlaterType {spin_symm}")
+

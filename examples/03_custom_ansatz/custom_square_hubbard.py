@@ -75,7 +75,7 @@ rng = np.random.default_rng(42)
 state0_ref = 0.0 * np.arange(N).reshape(N)
 state0 = state0_ref + rng.normal(scale=0.01, size=(hf_settings["batch_size"], N))
 
-autohf.lattice_hf(
+autohf.solve_hf(
   H,
   settings=hf_settings,
   state2orbitals=orbitalFunc,

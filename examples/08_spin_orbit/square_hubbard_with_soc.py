@@ -71,7 +71,7 @@ assert np.allclose(T_ghf, T_ghf.conj().T)
 # For GHF we either pass (T_ghf,) or a (1,2N,2N) array
 H = autohf.AutoHFHamiltonian(settings={"L": (Nx, Ny)}, T=(T_ghf,), U=U)
 
-autohf.lattice_hf(
+autohf.solve_hf(
   H,
   settings=hf_settings,
 )
