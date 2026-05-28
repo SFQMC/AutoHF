@@ -63,13 +63,9 @@ def make_T_multiband(Nx, Ny, Nbands, t, xperiodic=True, yperiodic=True):
 
 def make_interband_matrix(Nsites, Nbands, val):
   """NxN upper-triangular matrix with `val` at every same-site inter-band pair."""
-  N = Nsites * Nbands
-  M = np.zeros((N, N))
-  for s in range(Nsites):
-    for b1 in range(Nbands):
-      for b2 in range(b1 + 1, Nbands):
-        i, j = s * Nbands + b1, s * Nbands + b2
-        M[i, j] = val
+  M_band = np.zeros((Nbands, Nbands))
+  M_band[np.triu_indices(Nbands, k=1)] = val
+  M = np.kron(np.eye(Nsites), M_band)
   return M
 
 
