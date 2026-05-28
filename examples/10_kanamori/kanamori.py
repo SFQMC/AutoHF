@@ -35,25 +35,29 @@ import numpy as np
 import autohf
 
 def make_T_multiband(Nx, Ny, Nbands, t, xperiodic=True, yperiodic=True):
-  N = Nx * Ny * Nbands
-  T = np.zeros((N, N))
+  Nsites = Nx * Ny
+
+  # Build single-band hopping on (Nsites, Nsites)
+  T_band = np.zeros((Nsites, Nsites))
   for ix in range(Nx):
     for iy in range(Ny):
-      s = ix * Ny + iy  # site index
-      # x-direction neighbor
+      s = ix * Ny + iy
       if ix + 1 < Nx or xperiodic:
         s_nb = ((ix + 1) % Nx) * Ny + iy
-        for b in range(Nbands):
-          i, j = s * Nbands + b, s_nb * Nbands + b
-          T[i, j] = -t
-          T[j, i] = -t
-      # y-direction neighbor
+        T_band[s, s_nb] = -t
+        T_band[s_nb, s] = -t
       if iy + 1 < Ny or yperiodic:
         s_nb = ix * Ny + (iy + 1) % Ny
-        for b in range(Nbands):
-          i, j = s * Nbands + b, s_nb * Nbands + b
-          T[i, j] = -t
-          T[j, i] = -t
+        T_band[s, s_nb] = -t
+        T_band[s_nb, s] = -t
+
+  # Uniform across bands: shape (Nbands, Nsites, Nsites)
+  T_intraband = np.stack([T_band] * Nbands, axis=0)
+
+  N = Nbands * Nsites
+  T = np.zeros((N, N))
+  for b in range(Nbands):
+    T[b::Nbands, b::Nbands] = T_intraband[b]
   return T
 
 
