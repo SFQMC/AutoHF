@@ -7,7 +7,7 @@ name = "autohf"
 version = "0.0.3.alpha"
 requires-python = ">3.9"
 dependencies = [
-    "jax <= 0.4.38",
+    "jax",
     "optax",
     "jaxlib",
     "jaxopt",
@@ -23,6 +23,7 @@ dependencies = [
 [project.optional-dependencies]
 cuda11 = ["jax[cuda11]","optax","jaxlib", "jaxopt"]
 cuda12 = ["jax[cuda12]","optax","jaxlib", "jaxopt"]
+cuda13 = ["jax[cuda13]","optax","jaxlib", "jaxopt"]
 TESTING = ["pytest-html","coverage"]
 DOCS = [
     "sphinx",
