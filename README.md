@@ -1,4 +1,6 @@
 # AutoHF
+[![Docs](https://img.shields.io/badge/docs-online-blue)](https://safire.flatironinstitute.org/autohf/main)
+[![CI](https://jenkins.flatironinstitute.org/buildStatus/icon?job=SAFIRE%2Fmain&subject=CI)](https://jenkins.flatironinstitute.org/job/AutoHF/job/main/)
 
 AutoHF is an automatic-differention-based lattice model Hartree-Fock solver.
 
