@@ -46,3 +46,9 @@ div.math {
 .wy-side-nav-search, .wy-nav-top {
     background: #845B8E;
 }
+
+div[role=contentinfo] {
+	visibility: hidden;
+	height: 0;
+}
+
