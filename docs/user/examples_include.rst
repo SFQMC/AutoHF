@@ -3,7 +3,6 @@ User Examples
 
 .. toctree::
   :maxdepth: 2
-  :caption: Examples:
 
   examples/01_basics/basics.rst
   examples/02_inputfile/inputfile.rst
@@ -13,4 +12,6 @@ User Examples
   examples/06_alt_opt_methods/alt_opt_methods.rst
   examples/07_polarized/polarized.rst
   examples/08_spin_orbit/spin_orbit.rst
+  examples/09_molecule/molecule.rst
+  examples/10_kanamori/kanamori.py
 

@@ -20,12 +20,11 @@ To install with GPU support, create a new virtual environment (recommended) and 
 .. code-block:: bash
   
   $ cd /path/to/autohf/
-  $ module load cuda/12 cudnn python
   $ python -m venv venv
   $ . venv/bin/activate
   $ pip install .[cuda12]
 
-CUDA 11 is also available, by replacing ``cuda12`` with ``cuda11`` in the above; however, CUDA 12 is recommended if available.
+CUDA 13, 12, and 11 are supported using `cuda13`, `cuda12`, and `cuda11`, respectively.
 
 .. tip::
    JAX will crash if there is no GPU found when installed with GPU support. 

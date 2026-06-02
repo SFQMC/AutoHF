@@ -1,22 +1,33 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- Created with Inkscape (http://www.inkscape.org/) -->
-
 <svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="88.052002mm"
    height="30.432882mm"
    viewBox="-6 -2 88.052 30.432889"
    version="1.1"
    id="svg1"
-   inkscape:version="1.4.4 (dcaf3e7d9e, 2026-05-05)"
-   sodipodi:docname="autohf.svg"
+   inkscape:version="1.0.2 (e86c870879, 2021-01-15)"
+   sodipodi:docname="logo.svg"
    inkscape:export-filename="autohf.png"
    inkscape:export-xdpi="300"
-   inkscape:export-ydpi="300"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:xlink="http://www.w3.org/1999/xlink"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:svg="http://www.w3.org/2000/svg">
+   inkscape:export-ydpi="300">
+  <metadata
+     id="metadata927">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
   <sodipodi:namedview
      id="namedview1"
      pagecolor="#ffffff"
@@ -27,41 +38,19 @@
      inkscape:pagecheckerboard="0"
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="mm"
-     inkscape:zoom="1.5561371"
-     inkscape:cx="184.75236"
-     inkscape:cy="37.593089"
-     inkscape:window-width="1920"
-     inkscape:window-height="1200"
-     inkscape:window-x="0"
-     inkscape:window-y="0"
+     inkscape:zoom="2.2007102"
+     inkscape:cx="227.6632"
+     inkscape:cy="124.62386"
+     inkscape:window-width="1822"
+     inkscape:window-height="2102"
+     inkscape:window-x="2002"
+     inkscape:window-y="42"
      inkscape:window-maximized="1"
-     inkscape:current-layer="path23" />
+     inkscape:current-layer="layer1"
+     inkscape:document-rotation="0"
+     showgrid="false" />
   <defs
-     id="defs1">
-    <linearGradient
-       id="linearGradient3"
-       inkscape:collect="always">
-      <stop
-         style="stop-color:#0d42de;stop-opacity:1;"
-         offset="0"
-         id="stop3" />
-      <stop
-         style="stop-color:#4ad4fc;stop-opacity:1;"
-         offset="1"
-         id="stop4" />
-    </linearGradient>
-    <radialGradient
-       inkscape:collect="always"
-       xlink:href="#linearGradient3"
-       id="radialGradient4"
-       cx="69.021111"
-       cy="63.72456"
-       fx="69.021111"
-       fy="63.72456"
-       r="16.847811"
-       gradientTransform="matrix(2.042207,0.01343222,-0.01077607,1.6383702,-70.830689,-48.552714)"
-       gradientUnits="userSpaceOnUse" />
-  </defs>
+     id="defs1" />
   <g
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
@@ -77,7 +66,7 @@
        style="opacity:1">
       <path
          id="path2"
-         style="font-size:7.05556px;font-family:'Adwaita Sans';-inkscape-font-specification:'Adwaita Sans';baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:url(#radialGradient4);enable-background:accumulate;stop-color:#000000;stop-opacity:1;fill-opacity:1"
+         style="font-size:7.05556px;font-family:'Adwaita Sans';-inkscape-font-specification:'Adwaita Sans';baseline-shift:baseline;display:inline;overflow:visible;vector-effect:none;fill:#0c56ff;enable-background:accumulate;stop-color:#000000;stop-opacity:1;fill-opacity:1"
          d="M 67.195088 40.974384 L 67.195088 66.263797 L 70.171651 66.263797 L 70.171651 58.343867 L 78.486389 58.343867 L 78.486389 66.263797 L 81.465018 66.263797 L 81.465018 48.097464 L 78.486389 48.097464 L 78.486389 55.599848 L 70.171651 55.599848 L 70.171651 40.974384 L 67.195088 40.974384 z M 90.47067 40.974384 L 93.714916 48.097464 L 84.005948 48.097464 L 84.005948 66.263797 L 86.982511 66.263797 L 86.982511 58.343867 L 96.662023 58.343867 L 90.226757 66.263797 L 93.461185 66.263797 L 100.89071 57.03697 L 93.535082 40.974384 L 90.47067 40.974384 z M 86.982511 50.843549 L 94.967036 50.843549 L 97.134863 55.599848 L 86.982511 55.599848 L 86.982511 50.843549 z " />
     </g>
   </g>

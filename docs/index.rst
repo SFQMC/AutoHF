@@ -6,7 +6,6 @@
    user/installation
    user/quickstart
    user/hams
-   user/manual
    user/examples_include
 
 .. toctree::

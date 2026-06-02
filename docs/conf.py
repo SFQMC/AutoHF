@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = 'AutoHF Manual'
+project = 'AutoHF'
 
 # The full version, including alpha/beta/rc tags
 
