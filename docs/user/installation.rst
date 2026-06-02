@@ -4,7 +4,7 @@ Installation
 ------------
 
 AutoHF is a Python based tool, and so you should have a copy of your favorite version of Python around. 
-If there isn't a good version already installed, we recommend using [`miniforge`](https://github.com/conda-forge/miniforge) to get started.
+If there isn't a good version already installed, we recommend using `miniforge <https://github.com/conda-forge/miniforge>`_ to get started.
 
 .. note::
   Currently we recommend Python version 3.12, however any version >=3.9 will work
