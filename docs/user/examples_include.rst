@@ -13,5 +13,5 @@ User Examples
   examples/07_polarized/polarized.rst
   examples/08_spin_orbit/spin_orbit.rst
   examples/09_molecule/molecule.rst
-  examples/10_kanamori/kanamori.py
+  examples/10_kanamori/kanamori.rst
 
