@@ -116,6 +116,7 @@ class TestAlternativeOptimizers:
 
     # Basin hopping requires float64
     from jax import config
+
     config.update("jax_enable_x64", True)
 
     with warnings.catch_warnings(record=True) as w:
@@ -239,6 +240,8 @@ class TestEdgeCases:
       # Check if warning about energy was raised (might not always trigger)
       warning_messages = [str(warning.message) for warning in w]
       # This is conditional - warning only if final E > reference E
+      if any("final energy" in msg for msg in warning_messages):
+        assert any("reference energy" in msg for msg in warning_messages)
 
   def test_multiple_hopping_matrices(self):
     """Test that Hamiltonian can handle multiple hopping matrices."""

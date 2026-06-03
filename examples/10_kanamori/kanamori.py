@@ -7,12 +7,17 @@ The Hamiltonian is given by:
 .. math::
   H = -t \sum_m \sum_{\langle i, j \rangle, \sigma} (c_{i\sigma}^\dagger c_{j\sigma} + h.c.)
       + \sum_m U_m \sum_i n_{i\uparrow} n_{i\downarrow}
-      + \sum_{m < n} U^1_{mn} \sum_i (n_{im\uparrow} n_{in\downarrow} + n_{im\downarrow} n_{in\uparrow}) )
-      + \sum_{m < n} U^2_{mn} \sum_i (n_{im\uparrow} n_{in\uparrow} + n_{im\downarrow} n_{in\downarrow})
-      + \sum_{m < n} J_{mn} \sum_i (c_{im\uparrow}^\dagger c_{in\uparrow} c_{in\downarrow}^\dagger c_{im\downarrow} + h.c.) 
+      + \sum_{m < n} U^1_{mn} \sum_i (n_{im\uparrow} n_{in\downarrow}
+        + n_{im\downarrow} n_{in\uparrow}) )
+      + \sum_{m < n} U^2_{mn} \sum_i (n_{im\uparrow} n_{in\uparrow}
+        + n_{im\downarrow} n_{in\downarrow})
+      + \sum_{m < n} J_{mn} \sum_i (c_{im\uparrow}^\dagger c_{in\uparrow}
+        c_{in\downarrow}^\dagger c_{im\downarrow} + h.c.)
 
-In this example, we have 2 bands, and make the following choices for the interaction parameters. Note that
-only the upper-triangular part of the interaction matrices are specified, and the lower-triangular part is inferred from symmetry.
+In this example, we have 2 bands, and make the following choices for the
+interaction parameters. Note that only the upper-triangular part of the
+interaction matrices are specified, and the lower-triangular part is
+inferred from symmetry.
 
 U_m = [ 2.0, 4.0]
 U1_mn = [[ 0.0, 1.5
@@ -22,6 +27,7 @@ U2_mn = [[ 0.0, 1.0
 J_mn = [[ 0.0, 0.5
           0.0, 0.0]]
 """
+
 import os
 
 os.environ["JAX_PLATFORMS"] = "cpu"
@@ -33,6 +39,7 @@ config.update("jax_enable_x64", True)
 import numpy as np
 
 import autohf
+
 
 def make_T_multiband(Nx, Ny, Nbands, t, xperiodic=True, yperiodic=True):
   Nsites = Nx * Ny
@@ -106,11 +113,11 @@ U2_mat = make_interband_matrix(Nsites, Nbands, U2_val)
 J_mat = make_interband_matrix(Nsites, Nbands, J_val)
 
 H = autohf.AutoHFHamiltonian(
-  T=(T, T),         
-  U=U_val,          # scalar → uniform on-orbital Hubbard
-  U1=U1_mat,        # inter-orbital, opposite-spin density-density
-  U2=U2_mat,        # inter-orbital, same-spin density-density
-  J=J_mat,          # Hund's coupling
+  T=(T, T),
+  U=U_val,  # scalar → uniform on-orbital Hubbard
+  U1=U1_mat,  # inter-orbital, opposite-spin density-density
+  U2=U2_mat,  # inter-orbital, same-spin density-density
+  J=J_mat,  # Hund's coupling
   Nx=Nx,
   Ny=Ny,
   Nbands=Nbands,

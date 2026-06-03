@@ -53,8 +53,6 @@ def _toarrayornot(arr):
   return arr
 
 
-
-
 def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.01, Phi=None):
   """
   construct a random Slater determinant as
@@ -544,8 +542,10 @@ def makeEnergyCall(hamil: AutoHFHamiltonian, spin_symm, **kwargs):
     # the only manifold implemented is a Stiefel manifold (SD/SDC)
     # check that we are SD only
     if rep_type not in [RepOptions.SLATERDET, RepOptions.SLATERDETC]:
-      raise NotImplementedError("Riemannian optimization only \
-                                implemented for SD/SDC representations")
+      raise NotImplementedError(
+        "Riemannian optimization only \
+                                implemented for SD/SDC representations"
+      )
     beta = kwargs.get("beta", 1e-8)  # TODO: calc this
     nelec = kwargs["nelec"]
     print(f"Using Riemannian CD mode, {beta=}")
@@ -786,7 +786,7 @@ def solve_hf(
       shiftsj = rng.normal(scale=state0_scale / 100, size=state0.shape)
     for i, p in enumerate(phi0):
       x, y = p.shape
-      if initial_guess is not None: # add noise to initial guess if provided
+      if initial_guess is not None:  # add noise to initial guess if provided
         state0[:, i, 0:x, 0:y] += p + shifts[:, i, 0:x, :y]
       else:
         state0[:, i, 0:x, 0:y] += shifts[:, i, 0:x, :y]

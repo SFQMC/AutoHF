@@ -68,7 +68,9 @@ class TestConvertInitialSlaterDet:
     nelec = (3, 4)
 
     # Create mock initial guess in afqmctools format: [nmo, nelec[0] + nelec[1]]
-    initial_guess = np.random.randn(nmo, nelec[0] + nelec[1]) + 1j * np.random.randn(nmo, nelec[0] + nelec[1])
+    initial_guess = np.random.randn(nmo, nelec[0] + nelec[1]) + 1j * np.random.randn(
+      nmo, nelec[0] + nelec[1]
+    )
 
     result = convertInitialSlaterDet(initial_guess, nelec, spin_symm=SlaterType.COLLINEAR)
 
@@ -82,8 +84,8 @@ class TestConvertInitialSlaterDet:
     assert orb_dn.shape == (nmo, nelec[1])
 
     # Check values match input
-    assert jnp.allclose(orb_up, initial_guess[:, :nelec[0]])
-    assert jnp.allclose(orb_dn, initial_guess[:, nelec[0]:])
+    assert jnp.allclose(orb_up, initial_guess[:, : nelec[0]])
+    assert jnp.allclose(orb_dn, initial_guess[:, nelec[0] :])
 
   def test_noncollinear_conversion(self):
     """Test conversion of noncollinear Slater determinant."""

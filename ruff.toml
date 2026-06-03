@@ -28,6 +28,7 @@ ignore = [
 "PT023",# ignore @pytest.mark.slow
 "B011", # Do not assert False
 "TID252", # no relative imports from parents (may remove this when making a release package)
+"NPY002", # use legacy np.random.randn instead of np.random.Generator.standard_normal
 ]
 
 # Ignore `E402` (import violations) in all `__init__.py` files, and in `path/to/file.py`.

@@ -68,6 +68,7 @@ class TestHamiltonianEdgeCases:
 
   def test_hamiltonian_invalid_source_raises(self):
     """Test that invalid source type raises ValueError."""
+
     class InvalidSource:
       pass
 
@@ -128,10 +129,7 @@ class TestHamiltonianEdgeCases:
     Jheis = np.random.randn(N, N)
     Jheis = 0.5 * (Jheis + Jheis.T)
 
-    ham = AutoHFHamiltonian(
-      T=T, U=2.5, U1=U1, U2=U2, J=J, Jheisenberg=Jheis,
-      N=N, Nx=4, Ny=4
-    )
+    ham = AutoHFHamiltonian(T=T, U=2.5, U1=U1, U2=U2, J=J, Jheisenberg=Jheis, N=N, Nx=4, Ny=4)
 
     assert "T" in ham.keys()
     assert "U" in ham.keys()

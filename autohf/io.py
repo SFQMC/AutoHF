@@ -6,6 +6,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 
+
 def read_input_params(infile: str):
   """
   Read parameters from a human-readable input file in TOML format.
@@ -15,12 +16,14 @@ def read_input_params(infile: str):
     params = toml.loads(f.read())
   return params
 
+
 def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dump_batch):
   """Save all the trial states in an extra file
   Will automatically save based on npy/pkl/pickle file extension
   Does nothing if fname is empty/None
   """
   import pickle
+
   Es = np.array(energies)
   best = np.argmin(Es)
   o = orbFunc(states[best])
@@ -47,10 +50,13 @@ def saveStates(states, orbFunc, energies, phi0, args, nelec, fname, dump_batch):
     _save_to_h5(data, fname)
   elif fname[-4:] == ".pkl" or fname[-7:] == ".pickle":
     print("Saving Pickle:", fname)
-    warnings.warn("Saving states with pickle extension. Make sure this is intentional, \n"
-                  "as unpickling can be unsafe if the file is from an untrusted source.\n"
-                  "consider using the h5 extension instead, which is safer and more portable.",
-                  RuntimeWarning, stacklevel=2)
+    warnings.warn(
+      "Saving states with pickle extension. Make sure this is intentional, \n"
+      "as unpickling can be unsafe if the file is from an untrusted source.\n"
+      "consider using the h5 extension instead, which is safer and more portable.",
+      RuntimeWarning,
+      stacklevel=2,
+    )
     with open(fname, "wb") as f:
       pickle.dump(data, f)
   else:
@@ -79,11 +85,16 @@ def loadStates(input_, args, nelec):
       original_data = _load_from_h5(fname)
     elif fname[-4:] == ".pkl" or fname[-7:] == ".pickle":
       print("Reading from pkl/pickle format")
-      warnings.warn("The pickle format is deprecated and can be unsafe if the file \n"
-                    "is from an untrusted source. Consider using the h5 format instead,\n"
-                    "which is safer and more portable.", RuntimeWarning, stacklevel=2)
-      warnings.warn("Be careful with loading pickle files from untrusted sources!",
-                    RuntimeWarning, stacklevel=2)
+      warnings.warn(
+        "The pickle format is deprecated and can be unsafe if the file \n"
+        "is from an untrusted source. Consider using the h5 format instead,\n"
+        "which is safer and more portable.",
+        RuntimeWarning,
+        stacklevel=2,
+      )
+      warnings.warn(
+        "Be careful with loading pickle files from untrusted sources!", RuntimeWarning, stacklevel=2
+      )
       with open(fname, "rb") as f:
         original_data = pickle.load(f)
     else:
@@ -143,29 +154,30 @@ def loadStates(input_, args, nelec):
 
 def _save_to_h5(data: dict, fname: str):
   with h5.File(fname, "w") as f:
-      # iterate over data and save all arrays as datasets
-      for key, value in data.items():
-        if isinstance(value, (np.ndarray, jnp.ndarray)):
-          f.create_dataset(key, data=value)
-        elif key=="args":
-          # for namespace objects, save attributes in a group
-          grp = f.create_group(key)
-          for attr_name, attr_value in vars(value).items():
-            if isinstance(attr_value, (np.ndarray, jnp.ndarray)):
-              grp.create_dataset(attr_name, data=attr_value)
-            else:
-              try:
-                grp.attrs[attr_name] = attr_value
-              except (TypeError, ValueError):
-                # If the attribute can't be saved, convert to string
-                grp.attrs[attr_name] = str(attr_value)
-        else:
-          # for non-array data, save as an attribute
-          try:
-            f.attrs[key] = value
-          except (TypeError, ValueError):
-            # If the value can't be saved as attribute, convert to string
-            f.attrs[key] = str(value)
+    # iterate over data and save all arrays as datasets
+    for key, value in data.items():
+      if isinstance(value, (np.ndarray, jnp.ndarray)):
+        f.create_dataset(key, data=value)
+      elif key == "args":
+        # for namespace objects, save attributes in a group
+        grp = f.create_group(key)
+        for attr_name, attr_value in vars(value).items():
+          if isinstance(attr_value, (np.ndarray, jnp.ndarray)):
+            grp.create_dataset(attr_name, data=attr_value)
+          else:
+            try:
+              grp.attrs[attr_name] = attr_value
+            except (TypeError, ValueError):
+              # If the attribute can't be saved, convert to string
+              grp.attrs[attr_name] = str(attr_value)
+      else:
+        # for non-array data, save as an attribute
+        try:
+          f.attrs[key] = value
+        except (TypeError, ValueError):
+          # If the value can't be saved as attribute, convert to string
+          f.attrs[key] = str(value)
+
 
 def _load_from_h5(fname: str) -> dict:
   """Load data from HDF5 file created by _save_to_h5"""

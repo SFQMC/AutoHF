@@ -111,7 +111,7 @@ class TestSaveStates:
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_save.pickle")
 
-      data = saveStates(
+      saveStates(
         states=mock_solver_data["states"],
         orbFunc=mock_solver_data["orbFunc"],
         energies=mock_solver_data["energies"],
@@ -129,7 +129,7 @@ class TestSaveStates:
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_save.dat")
 
-      data = saveStates(
+      saveStates(
         states=mock_solver_data["states"],
         orbFunc=mock_solver_data["orbFunc"],
         energies=mock_solver_data["energies"],
@@ -148,7 +148,7 @@ class TestSaveStates:
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_save.npy")
 
-      data = saveStates(
+      saveStates(
         states=mock_solver_data["states"],
         orbFunc=mock_solver_data["orbFunc"],
         energies=mock_solver_data["energies"],
@@ -171,16 +171,16 @@ class TestSaveStates:
     with tempfile.TemporaryDirectory() as tmpdir:
       fname = os.path.join(tmpdir, "test_save.h5")
 
-      data = saveStates(
-          states=mock_solver_data["states"],
-          orbFunc=mock_solver_data["orbFunc"],
-          energies=mock_solver_data["energies"],
-          phi0=mock_solver_data["phi0"],
-          args=mock_solver_data["args"],
-          nelec=mock_solver_data["nelec"],
-          fname=fname,
-          dump_batch=False,
-        )
+      saveStates(
+        states=mock_solver_data["states"],
+        orbFunc=mock_solver_data["orbFunc"],
+        energies=mock_solver_data["energies"],
+        phi0=mock_solver_data["phi0"],
+        args=mock_solver_data["args"],
+        nelec=mock_solver_data["nelec"],
+        fname=fname,
+        dump_batch=False,
+      )
 
   def test_save_with_dump_batch(self, mock_solver_data):
     """Test saveStates with dump_batch=True includes all_orbitals."""
@@ -222,9 +222,7 @@ class TestLoadStates:
 
       # Load
       state0, state0_ref, phi0 = loadStates(
-        fname,
-        mock_solver_data["args"],
-        mock_solver_data["nelec"]
+        fname, mock_solver_data["args"], mock_solver_data["nelec"]
       )
 
       assert state0 is not None
@@ -244,11 +242,7 @@ class TestLoadStates:
       dump_batch=False,
     )
 
-    state0, state0_ref, phi0 = loadStates(
-      data,
-      mock_solver_data["args"],
-      mock_solver_data["nelec"]
-    )
+    state0, state0_ref, phi0 = loadStates(data, mock_solver_data["args"], mock_solver_data["nelec"])
 
     assert state0 is not None
     assert state0_ref is not None
@@ -269,7 +263,7 @@ class TestLoadStates:
     state0, state0_ref, phi0 = loadStates(
       (data, None),  # Tuple with data as first element
       mock_solver_data["args"],
-      mock_solver_data["nelec"]
+      mock_solver_data["nelec"],
     )
 
     assert state0 is not None
@@ -290,7 +284,7 @@ class TestLoadStates:
     state0, state0_ref, phi0 = loadStates(
       [data],  # List with data as first element
       mock_solver_data["args"],
-      mock_solver_data["nelec"]
+      mock_solver_data["nelec"],
     )
 
     assert state0 is not None
@@ -301,7 +295,7 @@ class TestLoadStates:
       loadStates(
         12345,  # Invalid type
         mock_solver_data["args"],
-        mock_solver_data["nelec"]
+        mock_solver_data["nelec"],
       )
 
   def test_load_increased_batch_size_raises_error(self, mock_solver_data):
@@ -338,11 +332,7 @@ class TestLoadStates:
       dump_batch=True,
     )
 
-    state0, state0_ref, phi0 = loadStates(
-      data,
-      mock_solver_data["args"],
-      mock_solver_data["nelec"]
-    )
+    state0, state0_ref, phi0 = loadStates(data, mock_solver_data["args"], mock_solver_data["nelec"])
 
     # Should load states in sorted order
     assert len(state0) == mock_solver_data["args"].batch_size
@@ -423,4 +413,3 @@ class TestLoadStates:
       with pytest.raises(RuntimeError, match="Unknown file extension for restart data"):
         # Manually save as pickle with .dat extension
         loadStates(fname, mock_solver_data["args"], mock_solver_data["nelec"])
-

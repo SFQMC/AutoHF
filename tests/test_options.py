@@ -108,7 +108,7 @@ class TestProcessArgs:
 
   def test_process_args_display_mode(self, capfd):
     """Test process_args with display=True shows settings."""
-    args = process_args({"steps": 50}, display=True)
+    process_args({"steps": 50}, display=True)
 
     captured = capfd.readouterr()
     assert "AutoHF Settings" in captured.out
@@ -164,7 +164,7 @@ class TestProcessArgs:
     """Test process_args with verbose parameter."""
     args = process_args({"verbose": 2}, display=False)
     # Should accept verbose level
-    assert hasattr(args, 'verbose')
+    assert hasattr(args, "verbose")
 
   def test_process_args_output_file(self):
     """Test process_args with output file parameter."""

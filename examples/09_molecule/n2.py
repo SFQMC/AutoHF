@@ -87,9 +87,7 @@ def molecular_energy(state, rdms):
   )
 
 
-data, data_functions = autohf.solve_hf(
-  H, settings=hf_settings, custom_energy_term=molecular_energy
-)
+data, data_functions = autohf.solve_hf(H, settings=hf_settings, custom_energy_term=molecular_energy)
 rounding_level = -np.log10(chol_tol).astype(int)
 # recall we have a cholesky cutoff, so we will be slightly off in evaluating the energy
 # practically this isn't a huge issue

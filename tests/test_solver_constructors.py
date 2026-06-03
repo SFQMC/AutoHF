@@ -36,8 +36,8 @@ class TestConstructPhi0:
 
     # Orbitals should be eigenvectors of T
     eigenvals, eigenvecs = np.linalg.eigh(T)
-    assert np.allclose(orb_up, eigenvecs[:, :nelec[0]])
-    assert np.allclose(orb_dn, eigenvecs[:, :nelec[1]])  # Same T used for both
+    assert np.allclose(orb_up, eigenvecs[:, : nelec[0]])
+    assert np.allclose(orb_dn, eigenvecs[:, : nelec[1]])  # Same T used for both
 
   def test_construct_phi0_collinear_two_T(self):
     """Test constructPhi0 with separate T matrices for up/down."""
@@ -60,8 +60,8 @@ class TestConstructPhi0:
     # Should use different eigenvectors
     _, eigenvecs_up = np.linalg.eigh(T_up)
     _, eigenvecs_dn = np.linalg.eigh(T_dn)
-    assert np.allclose(orb_up, eigenvecs_up[:, :nelec[0]])
-    assert np.allclose(orb_dn, eigenvecs_dn[:, :nelec[1]])
+    assert np.allclose(orb_up, eigenvecs_up[:, : nelec[0]])
+    assert np.allclose(orb_dn, eigenvecs_dn[:, : nelec[1]])
 
   def test_construct_phi0_average_spins(self):
     """Test constructPhi0 with averageSpins=True."""
@@ -75,9 +75,7 @@ class TestConstructPhi0:
     T_dn = (T_dn + T_dn.T) / 2
 
     result = constructPhi0(
-      [T_up, T_dn], N, nelec,
-      spin_symm=SlaterType.COLLINEAR,
-      averageSpins=True
+      [T_up, T_dn], N, nelec, spin_symm=SlaterType.COLLINEAR, averageSpins=True
     )
 
     orb_up, orb_dn = result
@@ -86,8 +84,8 @@ class TestConstructPhi0:
     T_avg = (T_up + T_dn) / 2
     _, eigenvecs_avg = np.linalg.eigh(T_avg)
 
-    assert np.allclose(orb_up, eigenvecs_avg[:, :nelec[0]])
-    assert np.allclose(orb_dn, eigenvecs_avg[:, :nelec[1]])
+    assert np.allclose(orb_up, eigenvecs_avg[:, : nelec[0]])
+    assert np.allclose(orb_dn, eigenvecs_avg[:, : nelec[1]])
 
   def test_construct_phi0_noncollinear_from_collinear_T(self):
     """Test constructPhi0 with collinear T but noncollinear walkers."""
@@ -102,13 +100,13 @@ class TestConstructPhi0:
     # Should return a 1-tuple containing an array of shape (2N, sum(nelec))
     assert isinstance(result, tuple)
     assert len(result) == 1
-    assert result[0].shape == (2*N, sum(nelec))
+    assert result[0].shape == (2 * N, sum(nelec))
 
     # Should be block diagonal Hamiltonian
     T_block = np.block([[T, np.zeros((N, N))], [np.zeros((N, N)), T]])
     _, eigenvecs = np.linalg.eigh(T_block)
 
-    assert np.allclose(result[0], eigenvecs[:, :sum(nelec)])
+    assert np.allclose(result[0], eigenvecs[:, : sum(nelec)])
 
   def test_construct_phi0_noncollinear_from_noncollinear_T(self):
     """Test constructPhi0 with noncollinear T matrix."""
@@ -116,7 +114,7 @@ class TestConstructPhi0:
     nelec = (3, 4)
 
     # Create 2N x 2N noncollinear Hamiltonian
-    T_nc = np.random.randn(2*N, 2*N)
+    T_nc = np.random.randn(2 * N, 2 * N)
     T_nc = (T_nc + T_nc.T) / 2
 
     result = constructPhi0([T_nc], N, nelec, spin_symm=SlaterType.NONCOLLINEAR)
@@ -124,10 +122,10 @@ class TestConstructPhi0:
     # Should return a 1-tuple containing an array of shape (2N, sum(nelec))
     assert isinstance(result, tuple)
     assert len(result) == 1
-    assert result[0].shape == (2*N, sum(nelec))
+    assert result[0].shape == (2 * N, sum(nelec))
 
     _, eigenvecs = np.linalg.eigh(T_nc)
-    assert np.allclose(result[0], eigenvecs[:, :sum(nelec)])
+    assert np.allclose(result[0], eigenvecs[:, : sum(nelec)])
 
   def test_construct_phi0_noncollinear_T_collinear_walker_raises_error(self):
     """Test constructPhi0 raises error with NC Hamiltonian but collinear walkers."""
@@ -135,7 +133,7 @@ class TestConstructPhi0:
     nelec = (3, 4)
 
     # Create 2N x 2N noncollinear Hamiltonian
-    T_nc = np.random.randn(2*N, 2*N)
+    T_nc = np.random.randn(2 * N, 2 * N)
     T_nc = (T_nc + T_nc.T) / 2
 
     with pytest.raises(RuntimeError, match="noncollinear"):
@@ -146,10 +144,10 @@ class TestConstructPhi0:
     N = 10
     nelec = (3, 4)
 
-    T_nc1 = np.random.randn(2*N, 2*N)
+    T_nc1 = np.random.randn(2 * N, 2 * N)
     T_nc1 = (T_nc1 + T_nc1.T) / 2
 
-    T_nc2 = np.random.randn(2*N, 2*N)
+    T_nc2 = np.random.randn(2 * N, 2 * N)
     T_nc2 = (T_nc2 + T_nc2.T) / 2
 
     with warnings.catch_warnings(record=True) as w:
@@ -162,7 +160,7 @@ class TestConstructPhi0:
 
     # Should use only first T
     _, eigenvecs = np.linalg.eigh(T_nc1)
-    assert np.allclose(result[0], eigenvecs[:, :sum(nelec)])
+    assert np.allclose(result[0], eigenvecs[:, : sum(nelec)])
 
   def test_construct_phi0_multiple_calls_deterministic(self):
     """Test constructPhi0 produces same result with same input."""
@@ -192,11 +190,7 @@ class TestConstructRandomPhi:
     N = 10
     nelec = (3, 4)
 
-    result = construct_random_Phi(
-      rng, N, nelec,
-      spin_symm=SlaterType.COLLINEAR,
-      delta=0.01
-    )
+    result = construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.01)
 
     # Should return tuple for collinear
     assert isinstance(result, tuple)
@@ -208,16 +202,12 @@ class TestConstructRandomPhi:
     N = 10
     nelec = (3, 4)
 
-    result = construct_random_Phi(
-      rng, N, nelec,
-      spin_symm=SlaterType.NONCOLLINEAR,
-      delta=0.01
-    )
+    result = construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.NONCOLLINEAR, delta=0.01)
 
     # Should return a 1-tuple containing an array of shape (2*N, sum(nelec))
     assert isinstance(result, tuple)
     assert len(result) == 1
-    assert result[0].shape == (2*N, sum(nelec))
+    assert result[0].shape == (2 * N, sum(nelec))
 
   def test_construct_random_phi_with_initial_phi(self):
     """Test construct_random_Phi with provided initial Phi."""
@@ -229,10 +219,7 @@ class TestConstructRandomPhi:
     Phi_init = np.random.randn(N, sum(nelec))
 
     result = construct_random_Phi(
-      rng, N, nelec,
-      spin_symm=SlaterType.COLLINEAR,
-      delta=0.01,
-      Phi=Phi_init
+      rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.01, Phi=Phi_init
     )
 
     # Should be different from input due to randomization
@@ -248,20 +235,17 @@ class TestConstructRandomPhi:
     nelec = (3, 4)
 
     # Very small delta should give result close to identity
-    result = construct_random_Phi(
-      rng, N, nelec,
-      spin_symm=SlaterType.COLLINEAR,
-      delta=0.001
-    )
+    result = construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.001)
 
     orb_up, orb_dn = result
 
     # Should be close to identity matrix columns
-    identity_cols_up = np.eye(N, sum(nelec))[:, :nelec[0]]
-    identity_cols_dn = np.eye(N, sum(nelec))[:, nelec[0]:sum(nelec)]
+    identity_cols_up = np.eye(N, sum(nelec))[:, : nelec[0]]
+    identity_cols_dn = np.eye(N, sum(nelec))[:, nelec[0] : sum(nelec)]
 
     # With small delta, should be close (but not exactly equal)
     assert np.allclose(np.abs(orb_up), np.abs(identity_cols_up), atol=0.1)
+    assert np.allclose(np.abs(orb_dn), np.abs(identity_cols_dn), atol=0.1)
 
   def test_construct_random_phi_different_seeds_different_results(self):
     """Test construct_random_Phi produces different results with different seeds."""

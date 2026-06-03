@@ -127,8 +127,9 @@ class TestUHFTerms:
 
     # Manually calculate
     rho_up, rho_dn = rdm[0], rdm[1]
-    expected = (rho_up[ii[0], ii[1]] @ rho_dn[jj[0], jj[1]] +
-                rho_up[jj[0], jj[1]] @ rho_dn[ii[0], ii[1]])
+    expected = (
+      rho_up[ii[0], ii[1]] @ rho_dn[jj[0], jj[1]] + rho_up[jj[0], jj[1]] @ rho_dn[ii[0], ii[1]]
+    )
     assert np.allclose(result, expected)
 
   def test_uhf_U2(self):
@@ -153,10 +154,12 @@ class TestUHFTerms:
 
     # Manually calculate
     rho_up, rho_dn = rdm[0], rdm[1]
-    expected = (rho_up[ii[0], ii[1]] @ rho_up[jj[0], jj[1]] +
-                rho_dn[ii[0], ii[1]] @ rho_dn[jj[0], jj[1]])
-    expected -= (rho_up[ij[0], ij[1]] @ rho_up[ji[0], ji[1]] +
-                 rho_dn[ij[0], ij[1]] @ rho_dn[ji[0], ji[1]])
+    expected = (
+      rho_up[ii[0], ii[1]] @ rho_up[jj[0], jj[1]] + rho_dn[ii[0], ii[1]] @ rho_dn[jj[0], jj[1]]
+    )
+    expected -= (
+      rho_up[ij[0], ij[1]] @ rho_up[ji[0], ji[1]] + rho_dn[ij[0], ij[1]] @ rho_dn[ji[0], ji[1]]
+    )
     assert np.allclose(result, expected)
 
   def test_uhf_J(self):
@@ -181,10 +184,12 @@ class TestUHFTerms:
 
     # Manually calculate
     rho_up, rho_down = rdm[0], rdm[1]
-    expected = (rho_up[ij[0], ij[1]] @ rho_down[ji[0], ji[1]] +
-                rho_up[ij[0], ij[1]] @ rho_down[ij[0], ij[1]] +
-                rho_up[ji[0], ji[1]] @ rho_down[ij[0], ij[1]] +
-                rho_up[ji[0], ji[1]] @ rho_down[ji[0], ji[1]])
+    expected = (
+      rho_up[ij[0], ij[1]] @ rho_down[ji[0], ji[1]]
+      + rho_up[ij[0], ij[1]] @ rho_down[ij[0], ij[1]]
+      + rho_up[ji[0], ji[1]] @ rho_down[ij[0], ij[1]]
+      + rho_up[ji[0], ji[1]] @ rho_down[ji[0], ji[1]]
+    )
     assert np.allclose(result, expected)
 
   def test_uhf_Jheis(self):
@@ -209,8 +214,9 @@ class TestUHFTerms:
 
     # Manually calculate
     rho_up, rho_down = rdm[0], rdm[1]
-    expected = (rho_up[ii[0], ii[1]] @ rho_down[jj[0], jj[1]] +
-                rho_up[ji[0], ji[1]] @ rho_down[ij[0], ij[1]])
+    expected = (
+      rho_up[ii[0], ii[1]] @ rho_down[jj[0], jj[1]] + rho_up[ji[0], ji[1]] @ rho_down[ij[0], ij[1]]
+    )
     assert np.allclose(result, expected)
 
 
@@ -272,10 +278,12 @@ class TestGHFTerms:
 
     # Manually calculate
     rdm_uu, rdm_dd, rdm_ud, rdm_du = rdms
-    expected = (rdm_uu[ii[0], ii[1]] @ rdm_dd[jj[0], jj[1]] +
-                rdm_uu[jj[0], jj[1]] @ rdm_dd[ii[0], ii[1]])
-    expected -= (rdm_ud[ij[0], ij[1]] @ rdm_du[ji[0], ji[1]] +
-                 rdm_du[ij[0], ij[1]] @ rdm_ud[ji[0], ji[1]])
+    expected = (
+      rdm_uu[ii[0], ii[1]] @ rdm_dd[jj[0], jj[1]] + rdm_uu[jj[0], jj[1]] @ rdm_dd[ii[0], ii[1]]
+    )
+    expected -= (
+      rdm_ud[ij[0], ij[1]] @ rdm_du[ji[0], ji[1]] + rdm_du[ij[0], ij[1]] @ rdm_ud[ji[0], ji[1]]
+    )
 
     assert np.allclose(result, expected)
 
@@ -300,10 +308,12 @@ class TestGHFTerms:
 
     # Manually calculate
     rdm_uu, rdm_dd, rdm_ud, rdm_du = rdms
-    expected = (rdm_uu[ii[0], ii[1]] @ rdm_uu[jj[0], jj[1]] +
-                rdm_dd[ii[0], ii[1]] @ rdm_dd[jj[0], jj[1]])
-    expected -= (rdm_uu[ij[0], ij[1]] @ rdm_uu[ji[0], ji[1]] +
-                 rdm_dd[ij[0], ij[1]] @ rdm_dd[ji[0], ji[1]])
+    expected = (
+      rdm_uu[ii[0], ii[1]] @ rdm_uu[jj[0], jj[1]] + rdm_dd[ii[0], ii[1]] @ rdm_dd[jj[0], jj[1]]
+    )
+    expected -= (
+      rdm_uu[ij[0], ij[1]] @ rdm_uu[ji[0], ji[1]] + rdm_dd[ij[0], ij[1]] @ rdm_dd[ji[0], ji[1]]
+    )
 
     assert np.allclose(result, expected)
 
@@ -328,14 +338,18 @@ class TestGHFTerms:
 
     # Manually calculate
     rdm_uu, rdm_dd, rdm_ud, rdm_du = rdms
-    expected = (rdm_uu[ij[0], ij[1]] @ rdm_dd[ji[0], ji[1]] +
-                rdm_uu[ij[0], ij[1]] @ rdm_dd[ij[0], ij[1]] +
-                rdm_uu[ji[0], ji[1]] @ rdm_dd[ij[0], ij[1]] +
-                rdm_uu[ji[0], ji[1]] @ rdm_dd[ji[0], ji[1]])
-    expected -= (rdm_ud[ii[0], ii[1]] @ rdm_du[jj[0], jj[1]] +
-                 rdm_ud[ij[0], ij[1]] @ rdm_du[ij[0], ij[1]] +
-                 rdm_ud[jj[0], jj[1]] @ rdm_du[ii[0], ii[1]] +
-                 rdm_ud[ji[0], ji[1]] @ rdm_du[ji[0], ji[1]])
+    expected = (
+      rdm_uu[ij[0], ij[1]] @ rdm_dd[ji[0], ji[1]]
+      + rdm_uu[ij[0], ij[1]] @ rdm_dd[ij[0], ij[1]]
+      + rdm_uu[ji[0], ji[1]] @ rdm_dd[ij[0], ij[1]]
+      + rdm_uu[ji[0], ji[1]] @ rdm_dd[ji[0], ji[1]]
+    )
+    expected -= (
+      rdm_ud[ii[0], ii[1]] @ rdm_du[jj[0], jj[1]]
+      + rdm_ud[ij[0], ij[1]] @ rdm_du[ij[0], ij[1]]
+      + rdm_ud[jj[0], jj[1]] @ rdm_du[ii[0], ii[1]]
+      + rdm_ud[ji[0], ji[1]] @ rdm_du[ji[0], ji[1]]
+    )
 
     assert np.allclose(result, expected)
 
@@ -360,9 +374,11 @@ class TestGHFTerms:
 
     # Manually calculate
     rdm_uu, rdm_dd, rdm_ud, rdm_du = rdms
-    expected = (rdm_uu[ii[0], ii[1]] @ rdm_dd[jj[0], jj[1]] +
-                rdm_uu[ji[0], ji[1]] @ rdm_dd[ij[0], ij[1]])
-    expected -= (rdm_ud[ij[0], ij[1]] @ rdm_du[ji[0], ji[1]] +
-                 rdm_ud[jj[0], jj[1]] @ rdm_du[ii[0], ii[1]])
+    expected = (
+      rdm_uu[ii[0], ii[1]] @ rdm_dd[jj[0], jj[1]] + rdm_uu[ji[0], ji[1]] @ rdm_dd[ij[0], ij[1]]
+    )
+    expected -= (
+      rdm_ud[ij[0], ij[1]] @ rdm_du[ji[0], ji[1]] + rdm_ud[jj[0], jj[1]] @ rdm_du[ii[0], ii[1]]
+    )
 
     assert np.allclose(result, expected)

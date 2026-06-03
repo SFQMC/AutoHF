@@ -30,6 +30,7 @@ else:
     NONCOLLINEAR = 1
     CLOSED = 2
 
+
 class AutoHFHamiltonian:
   r"""
   Container class to hold Hamiltonian terms for AutoHF in internal format.
@@ -56,16 +57,16 @@ class AutoHFHamiltonian:
       * ``N`` — total number of orbitals (sites × Nbands; inferred from T or settings if omitted).
       * ``Nx``, ``Ny`` — lattice dimensions (used for metadata only).
       * ``Nbands`` — number of orbitals per site (default 1).
-  
+
   Supported Hamiltonian Terms
   ---------------------------
   Supply each term as a keyword argument, and supply input arrays in the following formats.
-    
+
   T : array-like, shape (nspin, N, N)
 
-    One-body hopping matrix. Implements 
+    One-body hopping matrix. Implements
     :math:`\\sum_{ij,\\sigma} T_{ij} c_{i\\sigma}^\\dagger c_{j\\sigma}`.
-      
+
     Must be a list/tuple/ndarray with one
     NxN matrix per spin sector: ``(T_up, T_dn)`` for collinear (UHF)
     or ``[T_total]`` for non-collinear (GHF).
@@ -108,17 +109,22 @@ class AutoHFHamiltonian:
 
     Hund's coupling (HK-model form).  Encodes pair-hopping and
     spin-flip processes between orbitals ``i`` and ``j``. Implements
-    :math:`\\sum_{i<j} J_{ij} (c_{i\\uparrow}^\\dagger c_{j\\uparrow} c_{j\\downarrow}^\\dagger c_{i\\downarrow} + h.c.)`
+
+    .. math::
+
+       \\sum_{i<j} J_{ij} (c_{i\\uparrow}^\\dagger c_{j\\uparrow}
+       c_{j\\downarrow}^\\dagger c_{i\\downarrow} + h.c.)
+
 
     Uses same format as U1, stored under ``_terms["J"]``.
 
     Only the upper-triangular part of the matrix is used.
-    
+
   Jheis, Jheisenberg : NxN array
 
     Heisenberg spin-spin coupling. Implements
     :math:`\\sum_{i<j} J_{ij}\, \\vec{S}_i \\cdot \\vec{S}_j`.
-    
+
     Uses same format as U1, stored under ``_terms["J_heisenberg"]``.
 
     ``Jheisenberg`` is an alias for ``Jheis``.
@@ -163,7 +169,7 @@ class AutoHFHamiltonian:
   def add_terms(self, **kwargs):
     r"""
     Add one or more Hamiltonian terms.
-    
+
     Parameters
     ----------
     **kwargs

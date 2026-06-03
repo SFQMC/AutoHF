@@ -21,7 +21,7 @@ class TestUhfToGhf:
     result = uhf_to_ghf(x)
 
     # Should be (2N, 2N) with block diagonal structure
-    assert result.shape == (2*N, 2*N)
+    assert result.shape == (2 * N, 2 * N)
     # Check upper-left block
     np.testing.assert_allclose(result[:N, :N], x_up)
     # Check lower-right block
@@ -40,7 +40,7 @@ class TestUhfToGhf:
     result = uhf_to_ghf(x)
 
     # Should be (2N, 2N) with block diagonal structure
-    assert result.shape == (2*N, 2*N)
+    assert result.shape == (2 * N, 2 * N)
     # Check it's a JAX array
     assert isinstance(result, jnp.ndarray)
 
@@ -55,7 +55,7 @@ class TestUhfToGhf:
     result = uhf_to_ghf(x)
 
     # Should handle different sized blocks
-    assert result.shape == (2*N, 2*M)
+    assert result.shape == (2 * N, 2 * M)
 
 
 class TestSdToRdm:
