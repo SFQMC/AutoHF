@@ -5,6 +5,14 @@ import numpy as np
 from autohf.hamiltonian import AutoHFHamiltonian
 
 
+def pytest_addoption(parser):
+  parser.addoption(
+    "--seed",
+    action="store",
+    default="42",
+    help="RNG seed for tests. Use an integer for a fixed seed, or 'random' for a random seed.",
+  )
+
 @pytest.fixture(scope="session")
 def hubbard_4x4():
   """
@@ -39,3 +47,14 @@ def hubbard_4x4():
   hamiltonian = AutoHFHamiltonian(settings=settings)
   hamiltonian.add_terms(T=(T, T), U=H_U)
   return hamiltonian
+
+@pytest.fixture(scope="session")
+def rng(request):
+  """Fixture to provide a random number generator with a configurable seed.
+  
+  Uses session scope to ensure the same RNG is used across all tests in the session, 
+  allowing for reproducibility, but without generating the same random samples in every test.
+  """
+  raw = request.config.getoption("--seed")
+  seed = None if raw == "random" else int(raw)
+  return np.random.default_rng(seed)

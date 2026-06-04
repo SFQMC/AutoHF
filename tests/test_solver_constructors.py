@@ -15,13 +15,13 @@ class TestConstructPhi0:
     result = constructPhi0(None, N=10, nelec=(3, 3))
     assert result is None
 
-  def test_construct_phi0_collinear_single_T(self):
+  def test_construct_phi0_collinear_single_T(self, rng):
     """Test constructPhi0 with single T matrix (collinear)."""
     N = 10
     nelec = (3, 4)
 
     # Create simple hopping matrix
-    T = np.random.randn(N, N)
+    T = rng.standard_normal((N, N))
     T = (T + T.T) / 2  # Make Hermitian
 
     result = constructPhi0([T], N, nelec, spin_symm=SlaterType.COLLINEAR)
@@ -39,16 +39,16 @@ class TestConstructPhi0:
     assert np.allclose(orb_up, eigenvecs[:, : nelec[0]])
     assert np.allclose(orb_dn, eigenvecs[:, : nelec[1]])  # Same T used for both
 
-  def test_construct_phi0_collinear_two_T(self):
+  def test_construct_phi0_collinear_two_T(self, rng):
     """Test constructPhi0 with separate T matrices for up/down."""
     N = 10
     nelec = (3, 4)
 
     # Create separate hopping matrices
-    T_up = np.random.randn(N, N)
+    T_up = rng.standard_normal((N, N))
     T_up = (T_up + T_up.T) / 2
 
-    T_dn = np.random.randn(N, N)
+    T_dn = rng.standard_normal((N, N))
     T_dn = (T_dn + T_dn.T) / 2
 
     result = constructPhi0([T_up, T_dn], N, nelec, spin_symm=SlaterType.COLLINEAR)
@@ -63,15 +63,15 @@ class TestConstructPhi0:
     assert np.allclose(orb_up, eigenvecs_up[:, : nelec[0]])
     assert np.allclose(orb_dn, eigenvecs_dn[:, : nelec[1]])
 
-  def test_construct_phi0_average_spins(self):
+  def test_construct_phi0_average_spins(self, rng):
     """Test constructPhi0 with averageSpins=True."""
     N = 10
     nelec = (3, 4)
 
-    T_up = np.random.randn(N, N)
+    T_up = rng.standard_normal((N, N))
     T_up = (T_up + T_up.T) / 2
 
-    T_dn = np.random.randn(N, N)
+    T_dn = rng.standard_normal((N, N))
     T_dn = (T_dn + T_dn.T) / 2
 
     result = constructPhi0(
@@ -87,12 +87,12 @@ class TestConstructPhi0:
     assert np.allclose(orb_up, eigenvecs_avg[:, : nelec[0]])
     assert np.allclose(orb_dn, eigenvecs_avg[:, : nelec[1]])
 
-  def test_construct_phi0_noncollinear_from_collinear_T(self):
+  def test_construct_phi0_noncollinear_from_collinear_T(self, rng):
     """Test constructPhi0 with collinear T but noncollinear walkers."""
     N = 10
     nelec = (3, 4)
 
-    T = np.random.randn(N, N)
+    T = rng.standard_normal((N, N))
     T = (T + T.T) / 2
 
     result = constructPhi0([T], N, nelec, spin_symm=SlaterType.NONCOLLINEAR)
@@ -108,13 +108,13 @@ class TestConstructPhi0:
 
     assert np.allclose(result[0], eigenvecs[:, : sum(nelec)])
 
-  def test_construct_phi0_noncollinear_from_noncollinear_T(self):
+  def test_construct_phi0_noncollinear_from_noncollinear_T(self, rng):
     """Test constructPhi0 with noncollinear T matrix."""
     N = 10
     nelec = (3, 4)
 
     # Create 2N x 2N noncollinear Hamiltonian
-    T_nc = np.random.randn(2 * N, 2 * N)
+    T_nc = rng.standard_normal((2*N, 2*N))
     T_nc = (T_nc + T_nc.T) / 2
 
     result = constructPhi0([T_nc], N, nelec, spin_symm=SlaterType.NONCOLLINEAR)
@@ -127,27 +127,27 @@ class TestConstructPhi0:
     _, eigenvecs = np.linalg.eigh(T_nc)
     assert np.allclose(result[0], eigenvecs[:, : sum(nelec)])
 
-  def test_construct_phi0_noncollinear_T_collinear_walker_raises_error(self):
+  def test_construct_phi0_noncollinear_T_collinear_walker_raises_error(self, rng):
     """Test constructPhi0 raises error with NC Hamiltonian but collinear walkers."""
     N = 10
     nelec = (3, 4)
 
     # Create 2N x 2N noncollinear Hamiltonian
-    T_nc = np.random.randn(2 * N, 2 * N)
+    T_nc = rng.standard_normal((2*N, 2*N))
     T_nc = (T_nc + T_nc.T) / 2
 
     with pytest.raises(RuntimeError, match="noncollinear"):
       constructPhi0([T_nc], N, nelec, spin_symm=SlaterType.COLLINEAR)
 
-  def test_construct_phi0_noncollinear_multiple_T_warns(self):
+  def test_construct_phi0_noncollinear_multiple_T_warns(self, rng):
     """Test constructPhi0 warns when multiple T provided for NC Hamiltonian."""
     N = 10
     nelec = (3, 4)
 
-    T_nc1 = np.random.randn(2 * N, 2 * N)
+    T_nc1 = rng.standard_normal((2*N, 2*N))
     T_nc1 = (T_nc1 + T_nc1.T) / 2
 
-    T_nc2 = np.random.randn(2 * N, 2 * N)
+    T_nc2 = rng.standard_normal((2*N, 2*N))
     T_nc2 = (T_nc2 + T_nc2.T) / 2
 
     with warnings.catch_warnings(record=True) as w:
@@ -162,12 +162,12 @@ class TestConstructPhi0:
     _, eigenvecs = np.linalg.eigh(T_nc1)
     assert np.allclose(result[0], eigenvecs[:, : sum(nelec)])
 
-  def test_construct_phi0_multiple_calls_deterministic(self):
+  def test_construct_phi0_multiple_calls_deterministic(self, rng):
     """Test constructPhi0 produces same result with same input."""
     N = 10
     nelec = (3, 4)
 
-    T = np.random.randn(N, N)
+    T = rng.standard_normal((N, N))
     T = (T + T.T) / 2
 
     result1 = constructPhi0([T], N, nelec, spin_symm=SlaterType.COLLINEAR)
@@ -184,9 +184,8 @@ class TestConstructPhi0:
 class TestConstructRandomPhi:
   """Test construct_random_Phi function."""
 
-  def test_construct_random_phi_collinear(self):
+  def test_construct_random_phi_collinear(self, rng):
     """Test construct_random_Phi creates randomized Slater determinant."""
-    rng = np.random.default_rng(42)
     N = 10
     nelec = (3, 4)
 
@@ -196,9 +195,8 @@ class TestConstructRandomPhi:
     assert isinstance(result, tuple)
     assert len(result) == 2
 
-  def test_construct_random_phi_noncollinear(self):
+  def test_construct_random_phi_noncollinear(self, rng):
     """Test construct_random_Phi for noncollinear case."""
-    rng = np.random.default_rng(42)
     N = 10
     nelec = (3, 4)
 
@@ -209,14 +207,13 @@ class TestConstructRandomPhi:
     assert len(result) == 1
     assert result[0].shape == (2 * N, sum(nelec))
 
-  def test_construct_random_phi_with_initial_phi(self):
+  def test_construct_random_phi_with_initial_phi(self, rng):
     """Test construct_random_Phi with provided initial Phi."""
-    rng = np.random.default_rng(42)
     N = 10
     nelec = (3, 4)
 
     # Provide custom initial Phi
-    Phi_init = np.random.randn(N, sum(nelec))
+    Phi_init = rng.standard_normal((N, sum(nelec)))
 
     result = construct_random_Phi(
       rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.01, Phi=Phi_init
