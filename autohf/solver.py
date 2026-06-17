@@ -56,19 +56,28 @@ def _toarrayornot(arr):
 
 
 def construct_random_Phi(rng, N, nelec, spin_symm=SlaterType.COLLINEAR, delta=0.01, Phi=None):
-  """
-  construct a random Slater determinant as
+  r"""Construct a random Slater determinant.
 
-  e^{-i*delta*X} Phi_{ia}
+  The determinant is built as
 
-  where Phi_{ia} is a Slater determinant, X is a random symmetric matrix,
-  and delta is a real number used to control the amplitude of the random noise.
+  .. math::
 
-  Inputs:
-  - rng: initialized numpy random number generator
-  - N : number of basis set functions (number of sites * number of bands)
-  - neelc : number of electrons as an iterable of length 2 (Nup,Ndown)
-  - spin_symm : the desired spin symmetry of the Slater determinant
+    e^{-i \delta X} \Phi_{ia}
+
+  where :math:`\Phi_{ia}` is a Slater determinant, :math:`X` is a random
+  symmetric matrix, and :math:`\delta` is a real number controlling the
+  amplitude of the random noise.
+
+  :param rng: Initialized NumPy random number generator.
+  :param N: Number of basis set functions (number of sites times number of
+      bands).
+  :param nelec: Number of electrons as an iterable of length 2,
+      ``(Nup, Ndown)``.
+  :param spin_symm: Desired spin symmetry of the Slater determinant.
+  :param delta: Real number controlling the amplitude of the random noise.
+  :param Phi: Optional Slater determinant to perturb. If ``None``, the
+      identity is used.
+  :returns: The randomized Slater determinant.
   """
   print("Making a randomized initial guess")
   if spin_symm == SlaterType.NONCOLLINEAR:
@@ -639,8 +648,101 @@ def solve_hf(
   verbosity=1,  # 0: no logo, minimal, 1: usual, 2: extra
   **kwargs,
 ):
-  """
-  Run Hartree-Fock on lattice Model Hamiltonians
+  r"""
+  Run Hartree-Fock on lattice model Hamiltonians.
+
+  Minimizes the Hartree-Fock energy of ``hamiltonian`` over the chosen
+  variational ansatz, optionally starting from a supplied initial guess or a
+  previously saved state.
+
+  Parameters
+  ----------
+  hamiltonian : AutoHFHamiltonian
+      The Hamiltonian to solve. Required.
+  settings : dict, optional
+      Dictionary of solver options. If ``None``, the settings are read from
+      ``inputfile``. The dictionary must also provide ``nelec`` (the number of
+      electrons). See the *Settings* table below for the recognized keys.
+  initial_guess : array-like, optional
+      Initial Slater-determinant orbitals to start the optimization from. If
+      ``None``, a free-electron (or random) guess is constructed.
+  start_from : str, optional
+      Path to a previously saved state to restart the optimization from. Takes
+      precedence over ``initial_guess``.
+  inputfile : str, optional
+      Path to an input file from which to read ``settings`` when ``settings``
+      is ``None``.
+  custom_energy_term : callable, optional
+      Additional energy term added to the Hartree-Fock energy during
+      optimization.
+  verbosity : int, default 1
+      Console output level: ``0`` minimal (no banner), ``1`` usual, ``2``
+      extra detail.
+  **kwargs
+      Additional keyword arguments forwarded to the energy construction and
+      optimizer (e.g. ``optimizer``, ``averageSpins``).
+
+  Returns
+  -------
+  output_data : dict
+      Results of the run (orbitals, energies, settings, ...), as produced by
+      the saving routines.
+  data_functions : dict
+      Helper callables that cannot be pickled, with keys ``"makeRDMs"``,
+      ``"state2Orbitals"``, ``"energy_func"``, ``"loss"``, and ``"loss_v"``.
+
+  Notes
+  -----
+  **Settings.** The ``settings`` dictionary (or input file) accepts the
+  following keys:
+
+  ``approx_expm`` : default ``False``
+      If ``True``, use a fast, but approximate, matrix exponentiation.
+
+  ``dump_batch`` : default ``False``
+      Only applies when ``output`` is set. Dump the orbitals from all trials
+      to the output file, as opposed to only those of the best HF solution.
+
+  ``eta`` : default ``0.1``
+      The step size for gradient descent. Has no effect for the ``"lbfgs"`` or
+      ``"basin"`` optimization methods.
+
+  ``force_complex`` : default ``False``
+      If ``True``, forces the HF orbitals to be complex-valued.
+
+  ``output`` : default ``None``
+      Name of the file to save results to. The format and the data saved are
+      determined from the file name. ``"*.npy"`` saves the orbitals to the
+      NumPy binary format. ``"*.h5"`` saves, in an HDF5 file, :math:`\alpha`
+      for the best HF solution and for all trials, the energies for the best HF
+      solution and for all trials, the orbitals of the best variational state,
+      the AutoHF settings, the reference Slater determinant, and the number of
+      electrons used. ``"*.pkl"`` or ``"*.pickle"`` saves the same information
+      as the HDF5 format, but as a Python pickle file. HDF5 is recommended over
+      pickle files for security reasons [1]_.
+
+  ``riemannian`` : default ``False``
+      If ``True``, use the constraint-dissolving approach to impose
+      optimization on a Stiefel manifold. Only applicable to the ``SD`` or
+      ``SDC`` ansätze.
+
+  ``state0_scale`` : default ``0.01``
+      Controls the amount of random noise introduced to the initial
+      :math:`\alpha`. The details of how the noise is applied depend on the
+      specific ansatz used.
+
+  ``verbose`` : default ``False``
+      If ``True``, turns on verbose debug printing. This will significantly
+      slow down calculations.
+
+  ``jaxoptargs`` : default ``None``
+      A dictionary of keyword settings to pass along to the jaxopt LBFGS
+      optimizer. See the `jaxopt documentation
+      <https://jaxopt.github.io/stable/_autosummary/jaxopt.LBFGS.html>`_ for
+      more.
+
+  .. [1] Only use Python pickle files that you trust. Arbitrary code can be
+     encoded and then executed when loading a pickle file.
   """
 
   banner = """

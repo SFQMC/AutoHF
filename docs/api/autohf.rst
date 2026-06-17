@@ -1,57 +1,57 @@
-AutoHF Python package
+.. _api_reference:
+
+AutoHF API Reference
 =====================
 
+Top-level API
+-------------
 
-Overview
---------
+.. currentmodule:: autohf
 
-Installation
-------------
+.. autoclass:: AutoHFHamiltonian
+   :members:
+   :undoc-members:
+   :show-inheritance:
 
-
-More Detail
------------
-
-.. toctree::
-  :maxdepth: 2
-  :caption: Detailed User Documentation:
+.. autofunction:: solve_hf
 
 Subpackages
 -----------
 
 .. toctree::
-   :maxdepth: 4
+   :maxdepth: 1
 
    autohf.terms
-   autohf.interfaces
+
+.. autohf.interfaces
 
 
 Modules
 -------
 
-solver
-______
+.. solver
+   ______
 
-.. automodule:: autohf.solver
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   .. automodule:: autohf.solver
+      :members:
+      :undoc-members:
+      :show-inheritance:
 
-converters
-__________
+.. converters
+   __________
 
-.. automodule:: autohf.converters
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   .. automodule:: autohf.converters
+      :members:
+      :undoc-members:
+      :show-inheritance:
 
-hamiltonian
-___________
+.. hamiltonian
+   ___________
 
-.. automodule:: autohf.hamiltonian
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   .. automodule:: autohf.hamiltonian
+      :members:
+      :undoc-members:
+      :show-inheritance:
 
 input/output (io)
 _________________
@@ -69,27 +69,18 @@ _______
    :undoc-members:
    :show-inheritance:
 
-rotation tools
-_______________
+.. rotation tools
+   _______________
 
-.. automodule:: autohf.rotation_tools
-   :members:
-   :undoc-members:
-   :show-inheritance:
+   .. automodule:: autohf.rotation_tools
+      :members:
+      :undoc-members:
+      :show-inheritance:
 
 tools
 _____
 
 .. automodule:: autohf.tools
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
-
-Module contents
----------------
-
-.. automodule:: autohf
    :members:
    :undoc-members:
    :show-inheritance:

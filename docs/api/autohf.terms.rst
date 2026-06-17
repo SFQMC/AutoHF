@@ -20,6 +20,14 @@ autohf.terms.uhf module
    :undoc-members:
    :show-inheritance:
 
+autohf.terms.cholesky module
+-----------------------------
+
+.. automodule:: autohf.terms.cholesky
+  :members:
+  :undoc-members:
+  :show-inheritance:
+
 Module contents
 ---------------
 

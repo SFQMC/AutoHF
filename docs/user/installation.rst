@@ -15,7 +15,7 @@ When in doubt, create a new virtual environment (venv) and start from scratch.
 Installation (GPU Support)
 """"""""""""""""""""""""""
 
-To install with GPU support, create a new virtual environment (recommended) and using pip
+To install with GPU support, create a new virtual environment (recommended) and use pip
 
 .. code-block:: bash
   
@@ -24,11 +24,11 @@ To install with GPU support, create a new virtual environment (recommended) and 
   $ . venv/bin/activate
   $ pip install .[cuda12]
 
-CUDA 13, 12, and 11 are supported using `cuda13`, `cuda12`, and `cuda11`, respectively.
+CUDA 13, 12, and 11 are supported using ``cuda13``, ``cuda12``, and ``cuda11``, respectively.
 
 .. tip::
    JAX will crash if there is no GPU found when installed with GPU support. 
-   To circumvent this, AutoHF will by default can enforce a CPU mode. Use ``gpu=False`` in the settings for this behavior. 
+   To circumvent this, AutoHF can by default enforce a CPU mode. Use ``gpu=False`` in the settings for this behavior.
    Likewise, be sure to use ``gpu=True`` when you want to use the GPU.  
 
    Look for ``[CudaDevice(id=0)]`` in AutoHF output to ensure GPU support is working properly
@@ -55,4 +55,4 @@ Common Pitfalls
     import os
     os.environ["JAX_PLATFORMS"] = "cpu"
     
-  Remove this line to enable possible CPU support
+  Remove this line to enable possible GPU support
