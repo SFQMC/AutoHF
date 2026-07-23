@@ -3,8 +3,8 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "autohf"
-version = "0.1"
+name = "sfqmc-autohf"
+version = "0.1.0"
 requires-python = ">3.9"
 dependencies = [
     "jax",
