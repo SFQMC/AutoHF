@@ -19,10 +19,9 @@ To install with GPU support, create a new virtual environment (recommended) and 
 
 .. code-block:: bash
   
-  $ cd /path/to/autohf/
   $ python -m venv venv
   $ . venv/bin/activate
-  $ pip install .[cuda12]
+  $ pip install sfqmc-autohf[cuda12]
 
 CUDA 13, 12, and 11 are supported using ``cuda13``, ``cuda12``, and ``cuda11``, respectively.
 
@@ -38,10 +37,9 @@ Installation (CPU Only)
 
 .. code-block:: bash
   
-   $ cd /path/to/autohf/
    $ python -m venv venv
    $ . venv/bin/activate
-   $ pip install .
+   $ pip install sfqmc-autohf
   
 
 Common Pitfalls
