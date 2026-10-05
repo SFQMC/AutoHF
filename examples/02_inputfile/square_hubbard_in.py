@@ -35,7 +35,6 @@ def makeT(Nx, Ny, xperiodic=True, yperiodic=True):
 fname = "input.toml"
 
 # cheating to set Hamiltonian with input
-# easier with afqmctools
 input_settings = autohf.io.read_input_params(fname)
 lattice_settings = input_settings["lattice"]
 Nx, Ny = lattice_settings["L1"], lattice_settings["L2"]

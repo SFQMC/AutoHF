@@ -4,6 +4,14 @@ autohf.interfaces package
 Submodules
 ----------
 
+autohf.interfaces.safiretools module
+------------------------------------
+
+.. automodule:: autohf.interfaces.safiretools
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
 autohf.interfaces.afqmctools module
 -----------------------------------
 
