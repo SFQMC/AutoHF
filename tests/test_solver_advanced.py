@@ -240,15 +240,15 @@ class TestEdgeCases:
       _warning_messages = [str(warning.message) for warning in w]
       # This is conditional - warning only if final E > reference E
 
-  def test_multiple_hopping_matrices(self):
+  def test_multiple_hopping_matrices(self, rng):
     """Test that Hamiltonian can handle multiple hopping matrices."""
     from autohf import AutoHFHamiltonian
     import numpy as np
 
     N = 16
-    T_up = np.random.randn(N, N)
+    T_up = rng.standard_normal(size=(N, N))
     T_up = 0.5 * (T_up + T_up.T)  # Make Hermitian
-    T_dn = np.random.randn(N, N)
+    T_dn = rng.standard_normal(size=(N, N))
     T_dn = 0.5 * (T_dn + T_dn.T)  # Make Hermitian
 
     ham = AutoHFHamiltonian(

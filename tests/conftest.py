@@ -39,3 +39,10 @@ def hubbard_4x4():
   hamiltonian = AutoHFHamiltonian(settings=settings)
   hamiltonian.add_terms(T=(T, T), U=H_U)
   return hamiltonian
+
+@pytest.fixture(scope="function")
+def rng():
+    """
+    Seeded numpy RNG generator
+    """
+    return np.random.default_rng(seed=0x5eed)

@@ -62,13 +62,14 @@ class TestSAFIREHamiltonians:
 class TestConvertInitialSlaterDet:
   """Test conversion of initial Slater determinants between formats."""
 
-  def test_collinear_conversion(self):
+  def test_collinear_conversion(self, rng):
     """Test conversion of collinear Slater determinant."""
     nmo = 10
     nelec = (3, 4)
 
     # Create mock initial guess in afqmctools format: [nmo, nelec[0] + nelec[1]]
-    initial_guess = np.random.randn(nmo, nelec[0] + nelec[1]) + 1j * np.random.randn(nmo, nelec[0] + nelec[1])
+    initial_guess = rng.standard_normal(size=(nmo, nelec[0] + nelec[1])) \
+                    + 1j * rng.standard_normal(size=(nmo, nelec[0] + nelec[1]))
 
     result = convertInitialSlaterDet(initial_guess, nelec, spin_symm=SlaterType.COLLINEAR)
 
@@ -85,14 +86,14 @@ class TestConvertInitialSlaterDet:
     assert jnp.allclose(orb_up, initial_guess[:, :nelec[0]])
     assert jnp.allclose(orb_dn, initial_guess[:, nelec[0]:])
 
-  def test_noncollinear_conversion(self):
+  def test_noncollinear_conversion(self, rng):
     """Test conversion of noncollinear Slater determinant."""
     nmo = 10
     nelec = (3, 4)
     n_total = nelec[0] + nelec[1]
 
     # Create mock initial guess
-    initial_guess = np.random.randn(nmo, n_total) + 1j * np.random.randn(nmo, n_total)
+    initial_guess = rng.standard_normal(size=(nmo, n_total)) + 1j * rng.standard_normal(size=(nmo, n_total))
 
     result = convertInitialSlaterDet(initial_guess, nelec, spin_symm=SlaterType.NONCOLLINEAR)
 
@@ -104,11 +105,11 @@ class TestConvertInitialSlaterDet:
     # Check values match input
     assert jnp.allclose(result[0], initial_guess[:, :n_total])
 
-  def test_invalid_slater_type(self):
+  def test_invalid_slater_type(self, rng):
     """Test that invalid SlaterType raises ValueError."""
     nmo = 10
     nelec = (3, 4)
-    initial_guess = np.random.randn(nmo, nelec[0] + nelec[1])
+    initial_guess = rng.standard_normal(size=(nmo, nelec[0] + nelec[1]))
 
     # SlaterType.CLOSED is not valid for conversion
     with pytest.raises(ValueError, match="Could not convert"):
