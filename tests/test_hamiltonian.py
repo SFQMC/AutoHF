@@ -152,6 +152,7 @@ class TestAutoHFHamiltonianVerbose:
   U_auto_HF = (np.array([4.0]), [np.array([0, 1, 2, 3, 4, 5, 6, 7, 8])])
 
   @pytest.fixture(scope="class")
+  @classmethod
   def dummy_hamiltonian(self):
     """
     Returns a dummy Hamiltonian for testing purposes.
