@@ -1,6 +1,6 @@
 line-length = 120
 indent-width = 2
-target-version = "py39" # Minimum jax version
+target-version = "py311" # Minimum jax version
 
 [format]
 indent-style = "space"
