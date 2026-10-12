@@ -32,7 +32,7 @@ class TestRotationTools:
 
   def test_jexpm_diagonal(self):
     """Test fast matrix exponential on diagonal matrix."""
-    N = 5
+    # N = 5
     diag_vals = jnp.array([0.1, 0.2, 0.3, 0.4, 0.5])
     A = jnp.diag(diag_vals)
 

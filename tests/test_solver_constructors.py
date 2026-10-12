@@ -258,10 +258,13 @@ class TestConstructRandomPhi:
 
     # Should be close to identity matrix columns
     identity_cols_up = np.eye(N, sum(nelec))[:, :nelec[0]]
-    identity_cols_dn = np.eye(N, sum(nelec))[:, nelec[0]:sum(nelec)]
+    identity_cols_dn = np.eye(N, sum(nelec))[:, :nelec[1]]
 
     # With small delta, should be close (but not exactly equal)
-    assert np.allclose(np.abs(orb_up), np.abs(identity_cols_up), atol=0.1)
+    #assert np.allclose(np.abs(orb_up), np.abs(identity_cols_up), atol=0.1)
+    #assert np.allclose(np.abs(orb_dn), np.abs(identity_cols_dn), atol=0.1)
+    assert np.linalg.norm(orb_up - identity_cols_up)  < 0.1
+    assert np.linalg.norm(orb_dn - identity_cols_dn)  < 0.1
 
   def test_construct_random_phi_different_seeds_different_results(self):
     """Test construct_random_Phi produces different results with different seeds."""

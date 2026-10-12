@@ -237,7 +237,7 @@ class TestEdgeCases:
       results, funcs = solve_hf(hamiltonian=hubbard_4x4, settings=settings)
 
       # Check if warning about energy was raised (might not always trigger)
-      warning_messages = [str(warning.message) for warning in w]
+      _warning_messages = [str(warning.message) for warning in w]
       # This is conditional - warning only if final E > reference E
 
   def test_multiple_hopping_matrices(self):

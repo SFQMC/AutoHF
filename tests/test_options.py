@@ -112,6 +112,7 @@ class TestProcessArgs:
 
     captured = capfd.readouterr()
     assert "AutoHF Settings" in captured.out
+    assert args.steps == 50
 
   def test_process_args_inputfile(self):
     """Test process_args handles inputfile parameter."""

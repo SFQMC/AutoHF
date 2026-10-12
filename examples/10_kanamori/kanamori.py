@@ -12,7 +12,7 @@ The Hamiltonian is given by:
       + \sum_{m < n} J_{mn} \sum_i (c_{im\uparrow}^\dagger c_{in\uparrow} c_{in\downarrow}^\dagger c_{im\downarrow} + h.c.)
 
 In this example, we have 2 bands, and make the following choices for the interaction parameters. Note that
-only the upper-triangular part of the interaction matrices are specified, 
+only the upper-triangular part of the interaction matrices are specified,
 and the lower-triangular part is inferred from symmetry.
 
 U_m = [ 2.0, 4.0]
