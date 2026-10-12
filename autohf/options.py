@@ -63,7 +63,8 @@ def process_args(args_dict: dict = None, display: bool = True) -> SimpleNamespac
   args : Namespace
     a Namespace instance containing arguments (i.e. similar to the output of argparse)
   args_dict : dict
-    a dict containing arguments. If both `args` and `args_dict` set the same argument, the value in `args_dict` takes precendence.
+    a dict containing arguments.
+    If both `args` and `args_dict` set the same argument, the value in `args_dict` takes precendence.
   """
   _old_args = dict(
     numTrials="batch_size",

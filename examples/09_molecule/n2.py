@@ -93,7 +93,7 @@ def get_ortho_ao_mol(S, LINDEP_CUTOFF=0):
       Linear dependency cutoff. Basis functions whose eigenvalues lie below
       this value are removed from the basis set. Should be set in accordance
       with value in :func:`pyscf.scf.addons.remove_linear_dep`.
-  
+
   Returns
   -------
   X : :class:`numpy.array`

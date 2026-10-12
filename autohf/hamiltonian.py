@@ -120,16 +120,16 @@ class AutoHFHamiltonian:
       Uses the same format as ``U1``, stored under ``_terms["J_heisenberg"]``.
       ``Jheisenberg`` is an alias for ``Jheis``.
 
-  
+
   A general second quantized interaction of shape
 
   .. math::
 
-    \hat{H}^\text{Int}_V = \sum_{ijkl} V_{ijkl} \hat{c}^\dagger_{i} \hat{c}^\dagger_{j} \hat{c}_{k} \hat{c}_l =  \frac 12 \sum_{ijkl} \left( \sum_{n=1}^{N_\text{chol}} v^n_{il} v^n_{kj} \right) \hat{c}^\dagger_{i} \hat{c}^\dagger_{j} \hat{c}_{k} \hat{c}_l 
+    \hat{H}^\text{Int}_V = \sum_{ijkl} V_{ijkl} \hat{c}^\dagger_{i} \hat{c}^\dagger_{j} \hat{c}_{k} \hat{c}_l =  \frac 12 \sum_{ijkl} \left( \sum_{n=1}^{N_\text{chol}} v^n_{il} v^n_{kj} \right) \hat{c}^\dagger_{i} \hat{c}^\dagger_{j} \hat{c}_{k} \hat{c}_l
 
 
   is supported via the functions :func:`autohf.terms.cholesky.hf_onebody` and :func:`autohf.terms.cholesky.hf_cholesky` and a custom energy term. See the :ref:`example_molecules` example for more details.
-  """
+  """# noqa: E501
 
   def __init__(self, source=None, settings=None, **kwargs) -> None:
     self._terms = {}
@@ -170,7 +170,7 @@ class AutoHFHamiltonian:
   def add_terms(self, **kwargs):
     r"""
     Add one or more Hamiltonian terms.
-    
+
     Parameters
     ----------
     **kwargs
