@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
    git \
    gcc \
    g++ \
+   make \
    python3 \
    python3-pip \
    python3-venv
