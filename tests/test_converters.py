@@ -2,22 +2,30 @@ import pytest
 import numpy as np
 import jax.numpy as jnp
 
-afqmctools = pytest.importorskip("afqmctools")
-from afqmctools.hamiltonian.model.director import HamiltonianDirector
-from afqmctools.hamiltonian.model.builder import HamiltonianBuilder
-
 from autohf.hamiltonian import AutoHFHamiltonian
 from autohf.converters import convertInitialSlaterDet
 from autohf.options import SlaterType
 
 
+def _build_lattice_hamiltonian(package, settings):
+  pytest.importorskip(package)
+  if package == "afqmctools":
+    from afqmctools.hamiltonian.model.builder import HamiltonianBuilder
+
+    return HamiltonianBuilder.from_input(settings).hamiltonian
+  from safiretools import LatticeHamiltonian
+
+  return LatticeHamiltonian.from_dict(settings)
+
+
 class TestSAFIREHamiltonians:
   @pytest.mark.dev
+  @pytest.mark.parametrize("package", ["afqmctools", "safiretools"])
   @pytest.mark.parametrize(
     "t,U,U1,U2,J",
     [(None, 2, 1.5, 1.0, 0.5), (None, 2, -1.5, 1.0, 0.5), ([1, 0.5], 2, -1.5, 1.0, None)],
   )
-  def test_correct_hamiltonian(self, t, U, U1, U2, J):
+  def test_correct_hamiltonian(self, package, t, U, U1, U2, J):
     """
     Tests that the Hamiltonian is properly converted to
     autoHF's format.
@@ -31,12 +39,8 @@ class TestSAFIREHamiltonians:
       "lattice": dict(L1=3, L2=3, boundary1="PBC", boundary2="PBC"),
     }
 
-    hamiltonian_director = HamiltonianDirector(source=settings)
-    hamiltonian = hamiltonian_director.build()
-    lattice = hamiltonian_director.builder.lattice
-
-    # TODO: update to convert to AutoHFHamiltonian first, then pass along.
-    hamil = AutoHFHamiltonian(hamiltonian, L=lattice.L)
+    hamiltonian = _build_lattice_hamiltonian(package, settings)
+    hamil = AutoHFHamiltonian(hamiltonian)
 
     # check that all *values* are present
     for name in ["t", "U", "U1", "U2", "J"]:

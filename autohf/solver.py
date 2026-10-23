@@ -17,8 +17,7 @@ import warnings
 
 import scipy.sparse as sps  # TODO: Remove
 
-# TODO: make optional
-from autohf.interfaces.afqmctools import fail_without_afqmctools, spin_squared, spin_z
+from autohf.spin import spin_squared, spin_z
 
 
 from .io import read_input_params, saveStates, loadStates
@@ -1145,22 +1144,11 @@ def solve_hf(
       )
 
   if args.measure_spin:
-    rdms = makeRDMs(state)
-    if args.noncollinear:
-      spin_symm = "noncollinear"
-      rdm_list = [rdms]
-    else:
-      spin_symm = "collinear"
-      rdm_list = rdms
-    print(
-      "<Sz>",
-      spin_z(rdm=rdm_list, spin_symm=spin_symm),
-      end=" ",
-    )
-    print(
-      "<S^2>",
-      spin_squared(rdm=rdm_list, spin_symm=spin_symm),
-    )
+    rdm = makeRDMs(state)
+    if not args.noncollinear:
+      rdm = jax.scipy.linalg.block_diag(*rdm)
+    print("<Sz>", spin_z(rdm), end=" ")
+    print("<S^2>", spin_squared(rdm))
 
   # data_functions can't be pickled, so split off but useful
   data_functions = {
