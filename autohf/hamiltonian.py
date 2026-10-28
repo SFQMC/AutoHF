@@ -1,4 +1,3 @@
-import importlib
 import copy
 
 import numpy as np
@@ -12,23 +11,8 @@ from .terms.cholesky import known_terms as cholesky_known_terms
 
 known_terms = uhf_known_terms + ghf_known_terms + cholesky_known_terms
 
-# optionally import afqmctools
-if importlib.util.find_spec("afqmctools") is not None:
-  HAS_AFQMCTOOLS = True
-  from afqmctools.hamiltonian.model.ham_class import SpinSymm, Hamiltonian
-
-  from .interfaces.afqmctools import _get_T, _get_U, _get_J, _get_heisenberg
-else:
-  HAS_AFQMCTOOLS = False
-
-  class Hamiltonian:
-    def __init__(self):
-      pass
-
-  class SpinSymm:
-    COLLINEAR = 0
-    NONCOLLINEAR = 1
-    CLOSED = 2
+from .interfaces.safiretools import LatticeHamiltonian, _get_T, _get_U, _get_J, _get_heisenberg
+from .interfaces.afqmctools import Hamiltonian
 
 class AutoHFHamiltonian:
   r"""
@@ -40,9 +24,9 @@ class AutoHFHamiltonian:
 
   Parameters
   ----------
-  source : AutoHFHamiltonian or afqmctools.Hamiltonian, optional
+  source : AutoHFHamiltonian or safiretools.LatticeHamiltonian, optional
       If ``source`` is an ``AutoHFHamiltonian``, performs a deep-copy (copy
-      constructor). If ``source`` is an afqmctools ``Hamiltonian``, reads
+      constructor). If ``source`` is a safiretools ``LatticeHamiltonian``, reads
       ``T``, ``U``, ``U1``, ``U2``, ``J``, and Heisenberg terms from it. If
       ``None`` (default), builds from keyword arguments.
   settings : dict, optional
@@ -138,8 +122,8 @@ class AutoHFHamiltonian:
     self.Nx, self.Ny = None, None
     self.Nbands = None
 
-    if isinstance(source, Hamiltonian):
-      self._init_from_afqmctools(source)
+    if isinstance(source, (LatticeHamiltonian, Hamiltonian)):
+      self._init_from_lattice_hamiltonian(source)
     elif isinstance(source, AutoHFHamiltonian):
       # TODO copy constructor
       self._terms = copy.deepcopy(source._terms)
@@ -186,7 +170,7 @@ class AutoHFHamiltonian:
       self._add_heisenberg(kwargs["Jheisenberg"])
     self._add_heisenberg(kwargs.get("Jheis", None))
 
-  def _init_from_afqmctools(self, hamiltonian):
+  def _init_from_lattice_hamiltonian(self, hamiltonian):
     self.Nbands = hamiltonian.nbands
     self.nsites = hamiltonian.nsites
     self.N = hamiltonian.nsites * self.Nbands

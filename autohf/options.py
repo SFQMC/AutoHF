@@ -21,7 +21,6 @@ def get_ansatz(ansatz: str) -> RepOptions:
   or representation options enum
   """
 
-  # Later this should be styled after afqmctools processing
   ansatz = ansatz.upper()
   if ansatz == "SD_ROT":
     rep_type = RepOptions.SLATERDET_ROT
