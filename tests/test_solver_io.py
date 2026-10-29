@@ -122,6 +122,7 @@ class TestSaveStates:
         dump_batch=False,
       )
 
+      assert data is not None
       assert os.path.exists(fname)
 
   def test_save_unknown_extension_converts_to_pickle(self, mock_solver_data):
@@ -140,6 +141,7 @@ class TestSaveStates:
         dump_batch=False,
       )
 
+      assert data is not None
       # Should create .pkl file
       assert os.path.exists(fname + ".pkl")
 
@@ -158,6 +160,8 @@ class TestSaveStates:
         fname=fname,
         dump_batch=True,
       )
+
+      assert data is not None
 
       # File should exist
       assert os.path.exists(fname)
@@ -181,6 +185,7 @@ class TestSaveStates:
           fname=fname,
           dump_batch=False,
         )
+      assert data is not None
 
   def test_save_with_dump_batch(self, mock_solver_data):
     """Test saveStates with dump_batch=True includes all_orbitals."""

@@ -1,6 +1,6 @@
-line-length = 100
+line-length = 120
 indent-width = 2
-target-version = "py39" # Minimum jax version
+target-version = "py311" # Minimum jax version
 
 [format]
 indent-style = "space"
@@ -27,6 +27,7 @@ ignore = [
 "E701", # allow Multiple statements on one line (colon)
 "PT023",# ignore @pytest.mark.slow
 "B011", # Do not assert False
+"B905", # ignore strict=True warning for zip
 "TID252", # no relative imports from parents (may remove this when making a release package)
 ]
 

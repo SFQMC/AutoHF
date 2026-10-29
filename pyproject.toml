@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sfqmc-autohf"
+requires-python = ">3.11"
 version = "0.2.0"
-requires-python = ">3.9"
 dependencies = [
     "jax",
     "optax",
