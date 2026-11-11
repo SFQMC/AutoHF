@@ -897,19 +897,23 @@ def solve_hf(
   elif rep_type == RepOptions.SLATERDETC:
     print("Running in Complex Slater Determinant Mode")
     maxdim = max([p.shape[-1] for p in phi0])
-    state0_ref = np.zeros((len(phi0), phi0[0].shape[0], maxdim))
-    state0 = np.zeros((batch_size, *state0_ref.shape))
+    state0_ref = np.zeros((len(phi0), phi0[0].shape[0], maxdim), dtype=complex)
+    state0 = np.zeros((batch_size, *state0_ref.shape), dtype=complex)
     shifts = rng.normal(scale=state0_scale, size=state0.shape)
     if force_complex:
       print("Forcing complex orbitals")
       shiftsj = rng.normal(scale=state0_scale / 100, size=state0.shape)
     for i, p in enumerate(phi0):
       x, y = p.shape
-      state0[:, i, 0:x, 0:y] += shifts[:, i, 0:x, :y]
+      if initial_guess is not None: # add noise to initial guess if provided
+        state0[:, i, 0:x, 0:y] += p + shifts[:, i, 0:x, :y]
+      else:
+        state0[:, i, 0:x, 0:y] += shifts[:, i, 0:x, :y]
       state0_ref[i, 0:x, 0:y] = p[:, :]
-      if force_complex:
-        state0[:, i, 0:x, 0:y] += shiftsj[:, i, 0:x, :y]
     state0 = jnp.stack([state0.real, state0.imag])
+    # shift but only the unrolled imag part
+    if force_complex:
+      state0 = state0.at[1].add(shiftsj)
     state0_ref = jnp.stack([state0_ref.real, state0_ref.imag])
     # stacking messed up ordering
     state0 = jnp.swapaxes(state0, 0, 1)
